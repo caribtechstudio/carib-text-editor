@@ -45,7 +45,13 @@
       "Bash(timeout 15 python /tmp/test_close4.py)",
       "Bash(python -c \"import flet; print\\(flet.__file__\\)\")",
       "Bash(find \"C:\\\\Users\\\\malfr\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\Lib\\\\site-packages\\\\flet\" -type f -name \"*.py\" -exec grep -l \"Clipboard\\(\\)\" {} \\\\;)",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(python -c \"import flet; print\\(flet.__version__\\)\")",
+      "WebFetch(domain:flet.dev)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.flet.dev)",
+      "WebFetch(domain:medium.com)"
     ]
   }
 }

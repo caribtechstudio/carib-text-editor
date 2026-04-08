@@ -95,6 +95,9 @@ def build_menu_bar(c, callbacks):
                      callbacks["undo"]),
             icon_btn("Rétablir  Ctrl+Y", ft.Icons.REDO,
                      callbacks["redo"]),
+            sep(),
+            icon_btn("Rechercher  Ctrl+F", ft.Icons.SEARCH,
+                     lambda e: callbacks["toggle_search"]()),
         ]),
     )
     return ft.Row(

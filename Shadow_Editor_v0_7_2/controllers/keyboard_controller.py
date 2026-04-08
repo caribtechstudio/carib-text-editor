@@ -12,7 +12,8 @@ class KeyboardController:
 
     def __init__(self, page, c, tab_ctrl, file_ctrl, ai_ctrl, voice_ctrl,
                  check_spelling, show_emoji_picker, request_close,
-                 toggle_toolbar=None, undo=None, redo=None):
+                 toggle_toolbar=None, undo=None, redo=None,
+                 search_ctrl=None):
         self._page = page
         self._c = c
         self._tab = tab_ctrl
@@ -25,8 +26,18 @@ class KeyboardController:
         self._toggle_toolbar = toggle_toolbar
         self._undo = undo
         self._redo = redo
+        self._search = search_ctrl
 
     async def on_keyboard_event(self, e: ft.KeyboardEvent):
+        # Recherche : Ctrl+F ouvre/ferme, Escape ferme
+        if e.ctrl and e.key == "F":
+            if self._search:
+                self._search.toggle_search()
+            return
+        if e.key == "Escape":
+            if self._search and self._search._search.visible:
+                self._search.close_search()
+                return
         if e.ctrl and e.key == "N":
             self._tab.add_tab()
         elif e.ctrl and e.key == "O":

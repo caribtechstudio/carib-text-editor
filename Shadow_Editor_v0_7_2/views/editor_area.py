@@ -24,6 +24,7 @@ def create_editor(c, hint_text, on_change, on_selection_change=None):
             size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
             color=c(T.L_PRIMARY, T.D_PRIMARY),
         ),
+        selection_color=ft.Colors.with_opacity(0.45, c(T.L_HL_CURRENT, T.D_HL_CURRENT)),
         cursor_color=c(T.L_ACCENT, T.D_ACCENT),
         cursor_height=22,
         cursor_width=1.5,

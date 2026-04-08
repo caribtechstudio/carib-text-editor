@@ -3,6 +3,7 @@ models/editor_state.py — État global de l'éditeur.
 """
 
 from constants import MODE_TEXT
+from models.search_state import SearchState
 
 
 class EditorState:
@@ -29,3 +30,6 @@ class EditorState:
 
         # Sauvegarde automatique
         self.auto_save: bool = False
+
+        # Recherche
+        self.search = SearchState()

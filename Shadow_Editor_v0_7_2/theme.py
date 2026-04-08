@@ -6,6 +6,12 @@ theme.py — Design tokens (couleurs) pour Shadow Editor.
 class T:
     """Palette de couleurs Light / Dark."""
 
+    # Highlight (recherche)
+    L_HL_CURRENT = "#FBBF24"   # ambre — match courant (selection_color)
+    L_HL_OTHER   = "#FEF3C7"   # jaune pâle — autres matches
+    D_HL_CURRENT = "#F59E0B"   # ambre chaud
+    D_HL_OTHER   = "#78350F"   # brun doré subtil
+
     # Light
     L_BG        = "#FFFFFF"
     L_SIDEBAR   = "#F9FAFB"

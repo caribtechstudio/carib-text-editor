@@ -18,6 +18,7 @@ from views.menu_bar import build_menu_bar
 from views.status_bar import build_status_bar
 from views.ai_panel import build_ai_panel
 from views.editor_area import create_editor
+from views.search_bar import build_search_bar, build_highlight_text
 from views.dialogs.emoji_picker import show_emoji_picker
 from views.dialogs.help_dialog import show_help
 from views.dialogs.info_dialog import show_info, show_credits
@@ -30,6 +31,7 @@ from controllers.file_controller import FileController
 from controllers.ai_controller import AIController
 from controllers.voice_controller import VoiceController
 from controllers.keyboard_controller import KeyboardController
+from controllers.search_controller import SearchController
 from models.file_manager import write_file
 
 
@@ -89,12 +91,17 @@ class AppController:
             page, self.voice, self.editor, self.c,
             self.tab_ctrl, self.show_snack, self.rebuild,
         )
+        self.search_ctrl = SearchController(
+            self.state, self.editor, self.state.search,
+            self.tab_ctrl, self.update_status, self.rebuild, page,
+        )
         self.kb_ctrl = KeyboardController(
             page, self.c, self.tab_ctrl, self.file_ctrl,
             self.ai_ctrl, self.voice_ctrl,
             self.check_spelling, self._show_emoji_picker,
             self._request_close, self.toggle_toolbar,
             undo=self.undo, redo=self.redo,
+            search_ctrl=self.search_ctrl,
         )
 
         # Connecter auto-save : EditorController → FileController
@@ -165,7 +172,22 @@ class AppController:
         self.st_mode.value = {
             "text": "Texte", "calc": "Calcul", "read": "Lecture"
         }.get(self.state.mode, "Texte")
-        if d.modified:
+
+        search = self.state.search
+        if search.visible and search.query:
+            if search.matches:
+                match = search.current_match()
+                ctx = self._search_context(t, match) if match else ""
+                self.st_msg.value = (
+                    f"Recherche : {search.current_index + 1}/{search.total}"
+                    f"  —  {ctx}" if ctx else
+                    f"Recherche : {search.current_index + 1}/{search.total} résultat(s)"
+                )
+                self.st_msg.color = self.c(T.L_ACCENT, T.D_ACCENT)
+            else:
+                self.st_msg.value = f"Recherche : aucun résultat pour « {search.query} »"
+                self.st_msg.color = self.c(T.L_WARNING, T.D_WARNING)
+        elif d.modified:
             self.st_msg.value = "Modifications non enregistrées"
             self.st_msg.color = self.c(T.L_WARNING, T.D_WARNING)
         elif d.path:
@@ -175,6 +197,21 @@ class AppController:
         else:
             self.st_msg.value = ""
             self.st_msg.color = self.c(T.L_TERTIARY, T.D_TERTIARY)
+
+    @staticmethod
+    def _search_context(text: str, match: tuple[int, int]) -> str:
+        """Retourne le numéro de ligne et un extrait autour du match."""
+        start, end = match
+        line_num = text[:start].count("\n") + 1
+        # Extraire un bout de contexte autour du match
+        ctx_start = max(0, start - 20)
+        ctx_end = min(len(text), end + 20)
+        before = text[ctx_start:start].replace("\n", " ")
+        matched = text[start:end]
+        after = text[end:ctx_end].replace("\n", " ")
+        prefix = "..." if ctx_start > 0 else ""
+        suffix = "..." if ctx_end < len(text) else ""
+        return f"Ligne {line_num} : {prefix}{before}[{matched}]{after}{suffix}"
 
     # ------------------------------------------------------------------
     # Editor event delegate
@@ -567,6 +604,7 @@ class AppController:
     def _switch_tab(self, idx):
         self.editor_ctrl.reset_snapshot_tracking()
         self.tab_ctrl.switch_tab(idx)
+        self.search_ctrl.on_tab_switch()
 
     def _tab_bar_callbacks(self):
         return {
@@ -675,6 +713,7 @@ class AppController:
             "clear_text": self.clear_text,
             "undo": self.undo,
             "redo": self.redo,
+            "toggle_search": self.search_ctrl.toggle_search,
         }
 
     def _ai_panel_callbacks(self):
@@ -686,19 +725,82 @@ class AppController:
     # ------------------------------------------------------------------
     # Full rebuild
     # ------------------------------------------------------------------
+    def _search_bar_callbacks(self):
+        return {
+            "on_query_change": self.search_ctrl.on_query_change,
+            "on_search": lambda e: self.search_ctrl.go_next(),
+            "on_next": self.search_ctrl.go_next,
+            "on_prev": self.search_ctrl.go_prev,
+            "on_close": self.search_ctrl.close_search,
+            "toggle_case": self.search_ctrl.toggle_case,
+            "toggle_whole_word": self.search_ctrl.toggle_whole_word,
+            "toggle_regex": self.search_ctrl.toggle_regex,
+        }
+
     def rebuild(self):
         self.update_status()
         self.editor.hint_style = ft.TextStyle(
             size=16, font_family="Nunito", letter_spacing=0.2,
             color=self.c(T.L_MUTED, T.D_MUTED), italic=True)
-        self.editor.text_style = ft.TextStyle(
-            size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
-            color=self.c(T.L_PRIMARY, T.D_PRIMARY))
         self.editor.cursor_color = self.c(T.L_ACCENT, T.D_ACCENT)
+        self.editor.selection_color = ft.Colors.with_opacity(
+            0.45, self.c(T.L_HL_CURRENT, T.D_HL_CURRENT))
         self.editor.read_only = (self.state.mode == MODE_READ)
         self.st_mode.color = self.c(T.L_ACCENT, T.D_ACCENT)
         self.st_chars.color = self.c(T.L_TERTIARY, T.D_TERTIARY)
         self.st_words.color = self.c(T.L_TERTIARY, T.D_TERTIARY)
+
+        # Construire les éléments de la zone centrale
+        search = self.state.search
+        has_highlights = search.visible and search.matches
+        center_controls = []
+
+        if self.state.show_toolbar:
+            center_controls.append(
+                build_menu_bar(self.c, self._menu_bar_callbacks()))
+        if search.visible:
+            search_bar, search_field, search_counter = build_search_bar(
+                self.c, search, self._search_bar_callbacks(),
+            )
+            self.search_ctrl.counter_ref = search_counter
+            center_controls.append(search_bar)
+
+        # Mode surlignage : texte transparent + couche Text colorée dessous
+        if has_highlights:
+            self.editor.text_style = ft.TextStyle(
+                size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
+                color=ft.Colors.TRANSPARENT,
+            )
+            d = self.tab_ctrl.cur_doc()
+            text = d.content if d else ""
+            highlight_text = build_highlight_text(
+                text, search.matches, search.current_index, self.c,
+            )
+            hl_container = ft.Container(
+                expand=True, padding=30,
+                content=highlight_text,
+            )
+            # Stocker les refs pour mise à jour sans rebuild
+            self.search_ctrl.highlight_container = hl_container
+            self.search_ctrl._c = self.c
+            editor_area = ft.Stack(
+                expand=True,
+                controls=[
+                    # Couche basse : texte surligné (visible)
+                    hl_container,
+                    # Couche haute : éditeur transparent (capture l'input)
+                    self.editor,
+                ],
+            )
+        else:
+            self.editor.text_style = ft.TextStyle(
+                size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
+                color=self.c(T.L_PRIMARY, T.D_PRIMARY),
+            )
+            self.search_ctrl.highlight_container = None
+            editor_area = ft.Container(expand=True, content=self.editor)
+
+        center_controls.append(editor_area)
 
         layout = ft.Row(expand=True, spacing=0, controls=[
             build_sidebar(self.state, self.c, self._sidebar_callbacks()),
@@ -706,12 +808,8 @@ class AppController:
                 build_tab_bar(self.state, self.c, self._tab_bar_callbacks()),
                 ft.Container(
                     expand=True, bgcolor=self.c(T.L_EDITOR, T.D_EDITOR),
-                    content=ft.Column(expand=True, spacing=0, controls=[
-                        c for c in [
-                            build_menu_bar(self.c, self._menu_bar_callbacks()) if self.state.show_toolbar else None,
-                            ft.Container(expand=True, content=self.editor),
-                        ] if c is not None
-                    ]),
+                    content=ft.Column(expand=True, spacing=0,
+                                      controls=center_controls),
                 ),
                 build_status_bar(self.c, self.st_mode, self.st_msg,
                                  self.st_chars, self.st_words),
