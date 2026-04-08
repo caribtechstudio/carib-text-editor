@@ -1,9 +1,9 @@
 """
-my_emoji.py — Dictionnaire d'émojis et sélecteur visuel pour Shadow Editor v0.7.2
-===================================================================================
+my_emoji.py — Dictionnaire d'émojis pour Shadow Editor v0.8.0
+==============================================================
 Fournit :
-  - EmojiDictionary   : 300+ émojis en 10 catégories, avec alias My_emoji
-  - EmojiPickerDialog : sélecteur visuel avec recherche temps réel + onglets
+  - EmojiDictionary   : 400+ émojis en 10 catégories, avec alias My_emoji
+  - EMOJI_CATEGORIES  : dict ordonné {nom_catégorie: {code: char}}
 
 Convention de nommage des codes :
   - Toujours en minuscules, sans accents
@@ -16,22 +16,8 @@ Utilisation :
 
 Auteur  : Arnaud
 Licence : CC BY-NC-ND 4.0
-Version : 0.7.2
+Version : 0.8.0
 """
-
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (
-    QDialog,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QScrollArea,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
 
 
 # ===========================================================================
@@ -235,13 +221,13 @@ _DRAPEAUX = {
 
 
 # ===========================================================================
-# Classe : EmojiDictionary (remplace My_emoji)
+# Classe : EmojiDictionary
 # ===========================================================================
 
 class EmojiDictionary:
     """
-    Dictionnaire complet des codes → émojis organisé par catégories.
-    Rétrocompatible avec l'ancienne interface My_emoji.emoji_dictionnary.
+    Dictionnaire complet des codes -> emojis organise par categories.
+    Retrocompatible avec l'ancienne interface My_emoji.emoji_dictionnary.
     """
 
     categories: dict = {
@@ -257,197 +243,18 @@ class EmojiDictionary:
         "Drapeaux":             _DRAPEAUX,
     }
 
-    # Dictionnaire plat (toutes catégories fusionnées)
+    # Dictionnaire plat (toutes categories fusionnees)
     all_emojis: dict = {}
     for _d in categories.values():
         all_emojis.update(_d)
 
-    # Rétrocompatibilité avec l'ancienne interface
+    # Retrocompatibilite avec l'ancienne interface
     emoji_dictionnary: dict = all_emojis
 
 
-# Alias de rétrocompatibilité — le code existant utilise My_emoji.emoji_dictionnary
+# Alias — le code existant utilise My_emoji.emoji_dictionnary
 My_emoji = EmojiDictionary
 
-
-# ===========================================================================
-# Classe : EmojiPickerDialog
-# Sélecteur visuel avec onglets par catégorie + recherche temps réel.
-# ===========================================================================
-
-class EmojiPickerDialog(QDialog):
-    """
-    Fenêtre de sélection d'émojis.
-
-    Fonctionnalités :
-      - 10 onglets par catégorie avec grilles scrollables
-      - Barre de recherche filtre par nom de code en temps réel
-      - Clic sur un émoji → émission du signal + fermeture
-      - Tooltip sur chaque bouton affiche le code utilisable
-
-    Signal :
-      emoji_selected(str) : caractère émoji sélectionné
-    """
-
-    emoji_selected = Signal(str)
-    COLS = 8  # colonnes dans la grille
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Sélecteur d'émojis  —  Ctrl+E")
-        self.setMinimumSize(530, 480)
-        self.resize(570, 520)
-        self._build_ui()
-
-    # -- Construction de l'UI --------------------------------------------
-
-    def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
-        layout.setContentsMargins(12, 12, 12, 10)
-
-        # Barre de recherche
-        search_row = QHBoxLayout()
-        lbl = QLabel("🔍")
-        lbl.setStyleSheet("font-size: 14px;")
-        self._search = QLineEdit()
-        self._search.setPlaceholderText(
-            "Rechercher… (ex: coeur, chat, feu, drapeau)"
-        )
-        self._search.textChanged.connect(self._on_search)
-        self._search.setStyleSheet("padding: 4px 8px; font-size: 13px;")
-        search_row.addWidget(lbl)
-        search_row.addWidget(self._search, 1)
-        layout.addLayout(search_row)
-
-        # Zone résultats de recherche (masquée par défaut)
-        self._result_content = QWidget()
-        self._result_grid    = QGridLayout(self._result_content)
-        self._result_grid.setSpacing(2)
-        self._result_grid.setContentsMargins(6, 6, 6, 6)
-
-        self._result_scroll = QScrollArea()
-        self._result_scroll.setWidgetResizable(True)
-        self._result_scroll.setWidget(self._result_content)
-        self._result_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self._result_scroll.setStyleSheet("QScrollArea { border: none; }")
-        self._result_scroll.hide()
-        layout.addWidget(self._result_scroll)
-
-        # Onglets par catégorie
-        self._tab_widget = QTabWidget()
-        self._tab_widget.setStyleSheet(
-            "QTabBar::tab { padding: 5px 9px; font-size: 11px; }"
-        )
-        for cat_name, cat_dict in EmojiDictionary.categories.items():
-            scroll = self._build_tab(cat_dict)
-            # Nom court (avant le &)
-            short = cat_name.split("&")[0].strip().split(" ")[0]
-            idx   = self._tab_widget.addTab(scroll, short)
-            self._tab_widget.setTabToolTip(idx, cat_name)
-        layout.addWidget(self._tab_widget, 1)
-
-        # Barre inférieure
-        bottom = QHBoxLayout()
-        self._info = QLabel(
-            f"{len(EmojiDictionary.all_emojis)} émojis  •  "
-            "cliquez pour insérer, ou tapez :code dans l'éditeur"
-        )
-        self._info.setStyleSheet("color: gray; font-size: 11px;")
-        bottom.addWidget(self._info, 1)
-        btn_close = QPushButton("Fermer")
-        btn_close.setFixedWidth(72)
-        btn_close.clicked.connect(self.reject)
-        bottom.addWidget(btn_close)
-        layout.addLayout(bottom)
-
-    def _build_tab(self, cat_dict: dict) -> QScrollArea:
-        """Construit une grille scrollable pour une catégorie."""
-        scroll  = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet("QScrollArea { border: none; }")
-
-        content = QWidget()
-        grid    = QGridLayout(content)
-        grid.setSpacing(2)
-        grid.setContentsMargins(6, 6, 6, 6)
-
-        for idx, (code, char) in enumerate(cat_dict.items()):
-            grid.addWidget(
-                self._make_btn(char, code),
-                idx // self.COLS,
-                idx % self.COLS,
-            )
-
-        scroll.setWidget(content)
-        return scroll
-
-    def _make_btn(self, char: str, code: str) -> QPushButton:
-        """Crée un bouton émoji avec tooltip."""
-        btn = QPushButton(char)
-        btn.setFixedSize(48, 48)
-        btn.setToolTip(f"{code}  →  {char}")
-        btn.setStyleSheet(
-            "QPushButton {"
-            "  font-size: 24px; border-radius: 6px;"
-            "  border: 0.5px solid transparent; background: transparent;"
-            "}"
-            "QPushButton:hover {"
-            "  background: rgba(128,128,128,0.13);"
-            "  border: 0.5px solid rgba(128,128,128,0.25);"
-            "}"
-            "QPushButton:pressed { background: rgba(128,128,128,0.22); }"
-        )
-        btn.clicked.connect(
-            lambda checked=False, e=char: self._on_clicked(e)
-        )
-        return btn
-
-    def _on_clicked(self, char: str) -> None:
-        """Émet l'émoji et ferme la fenêtre."""
-        self.emoji_selected.emit(char)
-        self.accept()
-
-    def _on_search(self, query: str) -> None:
-        """Filtre les émojis en temps réel selon la requête."""
-        q = query.strip().lower()
-
-        if not q:
-            self._result_scroll.hide()
-            self._tab_widget.show()
-            self._info.setText(
-                f"{len(EmojiDictionary.all_emojis)} émojis  •  "
-                "cliquez pour insérer, ou tapez :code dans l'éditeur"
-            )
-            return
-
-        # Recherche dans le nom du code (sans les deux-points)
-        results = [
-            (code, char)
-            for code, char in EmojiDictionary.all_emojis.items()
-            if q in code.strip(":")
-        ]
-
-        # Vider la grille de résultats
-        while self._result_grid.count():
-            item = self._result_grid.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
-
-        for idx, (code, char) in enumerate(results):
-            self._result_grid.addWidget(
-                self._make_btn(char, code),
-                idx // self.COLS,
-                idx % self.COLS,
-            )
-
-        self._tab_widget.hide()
-        self._result_scroll.show()
-
-        n = len(results)
-        self._info.setText(
-            f"{n} résultat{'s' if n != 1 else ''} pour « {q} »"
-        )
+# Export pratique pour le nouveau code Flet
+EMOJI_CATEGORIES = EmojiDictionary.categories
+EMOJI_DICT = EmojiDictionary.all_emojis
