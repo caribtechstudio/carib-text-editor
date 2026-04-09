@@ -13,7 +13,7 @@ class KeyboardController:
     def __init__(self, page, c, tab_ctrl, file_ctrl, ai_ctrl, voice_ctrl,
                  check_spelling, show_emoji_picker, request_close,
                  toggle_toolbar=None, undo=None, redo=None,
-                 search_ctrl=None):
+                 search_ctrl=None, zoom_in=None, zoom_out=None):
         self._page = page
         self._c = c
         self._tab = tab_ctrl
@@ -27,6 +27,9 @@ class KeyboardController:
         self._undo = undo
         self._redo = redo
         self._search = search_ctrl
+        self._zoom_in = zoom_in
+        self._zoom_out = zoom_out
+        self._zoom_reset = None
 
     async def on_keyboard_event(self, e: ft.KeyboardEvent):
         # Recherche : Ctrl+F ouvre/ferme, Escape ferme
@@ -73,5 +76,14 @@ class KeyboardController:
         elif e.ctrl and e.key == "T":
             if self._toggle_toolbar:
                 self._toggle_toolbar()
+        elif e.ctrl and e.key == "Numpad Add":
+            if self._zoom_in:
+                self._zoom_in()
+        elif e.ctrl and e.key == "Numpad Subtract":
+            if self._zoom_out:
+                self._zoom_out()
+        elif e.ctrl and e.key == "Numpad 0":
+            if self._zoom_reset:
+                self._zoom_reset()
         elif e.alt and e.key == "F4":
             await self._request_close()

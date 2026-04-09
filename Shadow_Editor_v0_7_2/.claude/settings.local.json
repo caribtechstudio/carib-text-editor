@@ -51,7 +51,16 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.flet.dev)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:gallery.flet.dev)",
+      "Bash(python shadow_editor.py)",
+      "Bash(ls -la \"/g/Mon Drive/Arnaud/Game Dev/Python/Shadow Editor/Shadow_Editor_v0_7_2\"/*.py)",
+      "Bash(python -c \"import controllers.app_controller; print\\('OK'\\)\")",
+      "Bash(python -c \"import views.menu_bar; import views.status_bar; import controllers.keyboard_controller; print\\('All OK'\\)\")",
+      "Bash(python -c \"import controllers.app_controller; import views.menu_bar; import controllers.keyboard_controller; print\\('OK'\\)\")",
+      "Bash(python -c \"import flet as ft; e = ft.ScrollEvent; print\\([a for a in dir\\(e\\) if not a.startswith\\('_'\\)]\\)\")",
+      "Bash(python -c \"import flet as ft; print\\([a for a in dir\\(ft\\) if 'scroll' in a.lower\\(\\) or 'Scroll' in a]\\)\")",
+      "Bash(python -c \"import flet as ft; print\\([a for a in dir\\(ft.OnScrollEvent\\) if not a.startswith\\('_'\\)]\\)\")"
     ]
   }
 }

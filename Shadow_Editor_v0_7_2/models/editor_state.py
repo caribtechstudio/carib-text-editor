@@ -31,5 +31,8 @@ class EditorState:
         # Sauvegarde automatique
         self.auto_save: bool = False
 
+        # Zoom
+        self.zoom_level: int = 100  # 50–200 %, pas de 10
+
         # Recherche
         self.search = SearchState()

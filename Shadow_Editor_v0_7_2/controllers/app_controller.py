@@ -2,6 +2,8 @@
 controllers/app_controller.py — Contrôleur principal qui orchestre tout.
 """
 
+import ctypes
+import threading
 import flet as ft
 
 from constants import APP_NAME, APP_VERSION, MODE_READ, resource_path
@@ -61,14 +63,39 @@ class AppController:
         self.st_msg = ft.Text("", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY), expand=True)
         self.st_chars = ft.Text("0 car.", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY))
         self.st_words = ft.Text("0 mots", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY))
+        self.st_zoom = ft.Text("100 %", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY))
 
         # Sélection courante (mise à jour par on_selection_change)
         self._selection = None
+        self._ctrl_pressed = False
 
         # Editor
         self.editor = create_editor(
             self.c, self.ph.get_random_phrase(),
             self._on_text_changed, self._on_selection_change,
+        )
+
+        # Conteneurs persistants pour animations fluides
+        self._sidebar = ft.Container(
+            width=56,  # état initial (collapsed)
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            animate=ft.Animation(250, ft.AnimationCurve.EASE_OUT_CUBIC),
+        )
+        self._toolbar_wrap = ft.Container(
+            height=60,
+            opacity=1.0,
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
+            animate_opacity=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
+        )
+        self._editor_wrap = ft.Container(
+            expand=True,
+            scale=ft.Scale(scale=1.0),
+            animate_scale=ft.Animation(250, ft.AnimationCurve.EASE_OUT_CUBIC),
+        )
+        self._scroll_detector = ft.GestureDetector(
+            expand=True,
+            on_scroll=self._on_editor_scroll,
         )
 
         # Sous-contrôleurs
@@ -102,14 +129,19 @@ class AppController:
             self._request_close, self.toggle_toolbar,
             undo=self.undo, redo=self.redo,
             search_ctrl=self.search_ctrl,
+            zoom_in=self.zoom_in, zoom_out=self.zoom_out,
         )
+        self.kb_ctrl._zoom_reset = self.zoom_reset
 
         # Connecter auto-save : EditorController → FileController
         self.editor_ctrl._auto_save_callback = self.file_ctrl.auto_save
         self.file_ctrl._st_msg = self.st_msg
 
-        # Raccourcis clavier
-        page.on_keyboard_event = self.kb_ctrl.on_keyboard_event
+        # Raccourcis clavier (avec tracking Ctrl pour Ctrl+molette)
+        async def _on_keyboard(e):
+            self._ctrl_pressed = e.ctrl
+            await self.kb_ctrl.on_keyboard_event(e)
+        page.on_keyboard_event = _on_keyboard
 
         # Interception de la fermeture de fenêtre
         page.window.prevent_close = True
@@ -264,6 +296,93 @@ class AppController:
         d.modified = True
         self.update_status()
         self.page.update()
+
+    # ------------------------------------------------------------------
+    # Zoom
+    # ------------------------------------------------------------------
+    _BASE_TEXT_SIZE = 16
+
+    def _zoom_text_size(self):
+        """Retourne la taille de texte correspondant au niveau de zoom actuel."""
+        return round(self._BASE_TEXT_SIZE * self.state.zoom_level / 100)
+
+    def _apply_zoom(self, direction=0):
+        """Applique le zoom avec une animation scale en 2 temps (overshoot + retour)."""
+        sz = self._zoom_text_size()
+        self.editor.text_size = sz
+        self.editor.text_style = ft.TextStyle(
+            size=sz,
+            height=1.4,
+            font_family="Nunito",
+            letter_spacing=0.2,
+            color=self.editor.text_style.color if self.editor.text_style else self.c(T.L_PRIMARY, T.D_PRIMARY),
+        )
+        self.editor.hint_style = ft.TextStyle(
+            size=sz, font_family="Nunito", letter_spacing=0.2,
+            color=self.c(T.L_MUTED, T.D_MUTED), italic=True,
+        )
+        self.st_zoom.value = f"{self.state.zoom_level} %"
+        self.st_zoom.color = self.c(T.L_TERTIARY, T.D_TERTIARY)
+
+        # Animation scale overshoot : zoom in → 1.03, zoom out → 0.97, puis retour à 1.0
+        if hasattr(self, '_editor_wrap') and self._editor_wrap and direction != 0:
+            # Annuler tout timer précédent pour éviter les conflits
+            if hasattr(self, '_zoom_timer') and self._zoom_timer:
+                self._zoom_timer.cancel()
+            # Forcer le retour à 1.0 d'abord (sans animation perceptible)
+            # pour que le prochain overshoot produise toujours un delta
+            self._editor_wrap.scale = ft.Scale(scale=1.0)
+            self.page.update()
+            # Appliquer l'overshoot
+            overshoot = 1.03 if direction > 0 else 0.97
+            self._editor_wrap.scale = ft.Scale(scale=overshoot)
+            self.page.update()
+            # Retour progressif à 1.0
+            def settle():
+                self._editor_wrap.scale = ft.Scale(scale=1.0)
+                self.page.update()
+            self._zoom_timer = threading.Timer(0.2, settle)
+            self._zoom_timer.start()
+        else:
+            self.page.update()
+
+    @staticmethod
+    def _is_ctrl_pressed():
+        """Vérifie l'état réel de Ctrl via l'API Windows."""
+        try:
+            return bool(ctypes.windll.user32.GetAsyncKeyState(0x11) & 0x8000)
+        except (AttributeError, OSError):
+            return False
+
+    def _on_editor_scroll(self, e: ft.ScrollEvent):
+        """Ctrl+molette → zoom in/out."""
+        if not self._is_ctrl_pressed():
+            return
+        dy = e.scroll_delta.y
+        if dy < 0:
+            self.zoom_in()
+        elif dy > 0:
+            self.zoom_out()
+
+    def zoom_in(self):
+        if self.state.zoom_level >= 200:
+            self.show_snack("Zoom maximum atteint (200 %)")
+            return
+        self.state.zoom_level = min(200, self.state.zoom_level + 10)
+        self._apply_zoom(direction=1)
+
+    def zoom_out(self):
+        if self.state.zoom_level <= 50:
+            self.show_snack("Zoom minimum atteint (50 %)")
+            return
+        self.state.zoom_level = max(50, self.state.zoom_level - 10)
+        self._apply_zoom(direction=-1)
+
+    def zoom_reset(self):
+        if self.state.zoom_level == 100:
+            return
+        self.state.zoom_level = 100
+        self._apply_zoom()
 
     # ------------------------------------------------------------------
     # Clipboard & Clear
@@ -582,11 +701,24 @@ class AppController:
     # ------------------------------------------------------------------
     def toggle_sidebar(self):
         self.state.sidebar_collapsed = not self.state.sidebar_collapsed
-        self.rebuild()
+        self._sidebar.width = 56 if self.state.sidebar_collapsed else 240
+        self._sidebar.content = build_sidebar(
+            self.state, self.c, self._sidebar_callbacks(),
+        )
+        self.page.update()
 
     def toggle_toolbar(self):
         self.state.show_toolbar = not self.state.show_toolbar
-        self.rebuild()
+        if self.state.show_toolbar:
+            self._toolbar_wrap.content = build_menu_bar(
+                self.c, self._menu_bar_callbacks(),
+            )
+            self._toolbar_wrap.height = 60
+            self._toolbar_wrap.opacity = 1.0
+        else:
+            self._toolbar_wrap.height = 0
+            self._toolbar_wrap.opacity = 0.0
+        self.page.update()
 
     def _sidebar_callbacks(self):
         return {
@@ -714,6 +846,8 @@ class AppController:
             "undo": self.undo,
             "redo": self.redo,
             "toggle_search": self.search_ctrl.toggle_search,
+            "zoom_in": self.zoom_in,
+            "zoom_out": self.zoom_out,
         }
 
     def _ai_panel_callbacks(self):
@@ -739,9 +873,13 @@ class AppController:
 
     def rebuild(self):
         self.update_status()
+        sz = self._zoom_text_size()
+        self.editor.text_size = sz
         self.editor.hint_style = ft.TextStyle(
-            size=16, font_family="Nunito", letter_spacing=0.2,
+            size=sz, font_family="Nunito", letter_spacing=0.2,
             color=self.c(T.L_MUTED, T.D_MUTED), italic=True)
+        self.st_zoom.value = f"{self.state.zoom_level} %"
+        self.st_zoom.color = self.c(T.L_TERTIARY, T.D_TERTIARY)
         self.editor.cursor_color = self.c(T.L_ACCENT, T.D_ACCENT)
         self.editor.selection_color = ft.Colors.with_opacity(
             0.45, self.c(T.L_HL_CURRENT, T.D_HL_CURRENT))
@@ -755,9 +893,15 @@ class AppController:
         has_highlights = search.visible and search.matches
         center_controls = []
 
+        # Toolbar animée (conteneur persistant — hauteur 60↔0)
+        self._toolbar_wrap.content = build_menu_bar(self.c, self._menu_bar_callbacks())
         if self.state.show_toolbar:
-            center_controls.append(
-                build_menu_bar(self.c, self._menu_bar_callbacks()))
+            self._toolbar_wrap.height = 60
+            self._toolbar_wrap.opacity = 1.0
+        else:
+            self._toolbar_wrap.height = 0
+            self._toolbar_wrap.opacity = 0.0
+        center_controls.append(self._toolbar_wrap)
         if search.visible:
             search_bar, search_field, search_counter = build_search_bar(
                 self.c, search, self._search_bar_callbacks(),
@@ -768,7 +912,7 @@ class AppController:
         # Mode surlignage : texte transparent + couche Text colorée dessous
         if has_highlights:
             self.editor.text_style = ft.TextStyle(
-                size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
+                size=sz, height=1.4, font_family="Nunito", letter_spacing=0.2,
                 color=ft.Colors.TRANSPARENT,
             )
             d = self.tab_ctrl.cur_doc()
@@ -794,16 +938,22 @@ class AppController:
             )
         else:
             self.editor.text_style = ft.TextStyle(
-                size=16, height=1.4, font_family="Nunito", letter_spacing=0.2,
+                size=sz, height=1.4, font_family="Nunito", letter_spacing=0.2,
                 color=self.c(T.L_PRIMARY, T.D_PRIMARY),
             )
             self.search_ctrl.highlight_container = None
             editor_area = ft.Container(expand=True, content=self.editor)
 
-        center_controls.append(editor_area)
+        self._editor_wrap.content = editor_area
+        self._scroll_detector.content = self._editor_wrap
+        center_controls.append(self._scroll_detector)
+
+        # Sidebar animée (conteneur persistant)
+        self._sidebar.width = 56 if self.state.sidebar_collapsed else 240
+        self._sidebar.content = build_sidebar(self.state, self.c, self._sidebar_callbacks())
 
         layout = ft.Row(expand=True, spacing=0, controls=[
-            build_sidebar(self.state, self.c, self._sidebar_callbacks()),
+            self._sidebar,
             ft.Column(expand=True, spacing=0, controls=[
                 build_tab_bar(self.state, self.c, self._tab_bar_callbacks()),
                 ft.Container(
@@ -812,7 +962,7 @@ class AppController:
                                       controls=center_controls),
                 ),
                 build_status_bar(self.c, self.st_mode, self.st_msg,
-                                 self.st_chars, self.st_words),
+                                 self.st_chars, self.st_words, self.st_zoom),
             ]),
             build_ai_panel(self.state, self.c, self._ai_panel_callbacks()),
         ])
