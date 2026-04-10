@@ -1,5 +1,5 @@
 """
-my_emoji.py — Dictionnaire d'émojis pour Shadow Editor v0.8.0
+my_emoji.py — Dictionnaire d'émojis pour Glyph v0.9
 ==============================================================
 Fournit :
   - EmojiDictionary   : 400+ émojis en 10 catégories, avec alias My_emoji
@@ -16,7 +16,7 @@ Utilisation :
 
 Auteur  : Arnaud
 Licence : CC BY-NC-ND 4.0
-Version : 0.8.0
+Version : 0.9
 """
 
 

@@ -1,5 +1,5 @@
 """
-theme.py — Design tokens (couleurs) pour Shadow Editor.
+theme.py — Design tokens (couleurs) pour Glyph.
 """
 
 

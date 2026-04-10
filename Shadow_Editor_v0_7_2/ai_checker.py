@@ -1,5 +1,5 @@
 """
-ai_checker.py — Module de correction IA pour Shadow Editor v0.8.0
+ai_checker.py — Module de correction IA pour Glyph v0.9
 =================================================================
 Version Flet — utilise threading au lieu de QThread.
 Fournit la logique metier sans aucune dependance UI.
@@ -11,14 +11,14 @@ Composants :
   - GrammarChecker       : appel REST a l'API Ollama dans un thread
 
 Les composants UI (SetupDialog, CorrectionPanel, etc.) sont desormais
-dans le fichier principal shadow_editor.py (Flet).
+dans le fichier principal glyph.py (Flet).
 
 Dependances Python : requests
 Dependances systeme : Ollama >= 0.13.1
 
 Auteur  : Arnaud
 Licence : CC BY-NC-ND 4.0
-Version : 0.8.0
+Version : 0.9
 """
 
 # ---------------------------------------------------------------------------

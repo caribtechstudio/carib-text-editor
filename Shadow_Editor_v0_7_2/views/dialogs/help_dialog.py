@@ -36,7 +36,7 @@ def show_help(page, c):
                 row("Enregistrer", "Ctrl+S"), row("Enregistrer sous", "Ctrl+Shift+S"),
                 row("Imprimer", "Ctrl+P"),
                 row("Annuler", "Ctrl+Z"), row("Rétablir", "Ctrl+Y"),
-                row("Shadow Assistant", "F2"), row("Lire le texte", "F3"),
+                row("Glyph Assistant", "F2"), row("Lire le texte", "F3"),
                 row("Dictée Google", "F4"), row("Dictée Microsoft", "F5"),
                 row("Orthographe", "F6"), row("Correcteur IA", "F7"),
                 row("Émojis", "Ctrl+E"),

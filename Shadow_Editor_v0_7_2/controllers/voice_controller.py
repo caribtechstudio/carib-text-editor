@@ -23,7 +23,7 @@ class VoiceController:
         d = self._tab.cur_doc()
         if not d:
             return
-        msg = "Bonjour, je suis Shadow Assistant. Comment puis-je vous aider ?\n"
+        msg = "Bonjour, je suis Glyph Assistant. Comment puis-je vous aider ?\n"
         d.content = (self.editor.value or "") + msg
         self.editor.value = d.content
         d.modified = True

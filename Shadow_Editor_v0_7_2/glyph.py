@@ -1,5 +1,5 @@
 """
-Shadow Editor v0.8.0 — Flet Edition
+Glyph v0.9 — Flet Edition
 =====================================
 Editeur de texte moderne avec interface Clean SaaS inspiree Notion / Untitled UI.
 
@@ -18,7 +18,7 @@ Fonctionnalites :
 
 Auteur  : Arnaud
 Licence : CC BY-NC-ND 4.0
-Version : 0.8.0
+Version : 0.9
 """
 
 import flet as ft

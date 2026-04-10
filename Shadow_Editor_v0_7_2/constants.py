@@ -1,12 +1,12 @@
 """
-constants.py — Constantes globales de l'application Shadow Editor.
+constants.py — Constantes globales de l'application Glyph.
 """
 
 import os
 import sys
 
-APP_NAME = "Carib Text Editor"
-APP_VERSION = "0.8.0"
+APP_NAME = "Glyph"
+APP_VERSION = "0.9"
 
 MODE_TEXT = "text"
 MODE_CALC = "calc"
