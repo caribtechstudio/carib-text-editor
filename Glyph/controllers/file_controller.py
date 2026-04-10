@@ -24,7 +24,8 @@ class FileController:
         self._tab = tab_ctrl
         self._snack = show_snack
         self._rebuild = rebuild_fn
-        self._st_msg = None  # sera défini par AppController
+        self._st_msg = None     # sera défini par AppController
+        self._save_session = None  # sera défini par AppController
 
     async def open_file(self, e=None):
         result = await self._file_picker.pick_files(
@@ -42,6 +43,8 @@ class FileController:
             return
         self._tab.save_content()
         self._tab.add_tab(title=os.path.basename(fp), content=content, path=fp)
+        if self._save_session:
+            self._save_session()
 
     async def save_file(self, e=None):
         d = self._tab.cur_doc()
@@ -80,25 +83,39 @@ class FileController:
                 self._c(T.L_SUCCESS, T.D_SUCCESS),
             )
             self._rebuild()
+            if self._save_session:
+                self._save_session()
         except OSError as exc:
             self._snack(f"Erreur : {exc}", self._c(T.L_ERROR, T.D_ERROR))
 
     def auto_save(self):
-        """Sauvegarde automatique silencieuse — feedback dans la barre de statut."""
+        """Sauvegarde automatique silencieuse — feedback dans la barre de statut.
+
+        - Documents avec chemin : sauvegarde sur disque.
+        - Documents sans chemin : sauvegarde uniquement la session (contenu temporaire).
+        """
         d = self._tab.cur_doc()
-        if not d or not d.path or not d.modified:
+        if not d or not d.modified:
             return
+
         self._tab.save_content()
-        try:
-            write_file(d.path, d.content)
-            d.modified = False
-            if self._st_msg:
-                self._st_msg.value = datetime.now().strftime("Enregistré à %Hh%M")
-            self._rebuild()
-        except OSError:
-            if self._st_msg:
-                self._st_msg.value = "Échec de la sauvegarde auto"
-                self._page.update()
+
+        if d.path:
+            # Sauvegarde classique sur disque
+            try:
+                write_file(d.path, d.content)
+                d.modified = False
+                if self._st_msg:
+                    self._st_msg.value = datetime.now().strftime("Enregistré à %Hh%M")
+                self._rebuild()
+            except OSError:
+                if self._st_msg:
+                    self._st_msg.value = "Échec de la sauvegarde auto"
+                    self._page.update()
+
+        # Toujours sauvegarder la session (même pour les docs sans chemin)
+        if self._save_session:
+            self._save_session()
 
     def has_unsaved_docs(self):
         """Vérifie si au moins un document a été modifié."""
@@ -125,7 +142,12 @@ class FileController:
                              self._c(T.L_SUCCESS, T.D_SUCCESS))
             self._rebuild()
 
-        show_rename_dialog(self._page, self._c, d, {"do_rename": do_rename})
+        def do_rename_and_save_session(new_name):
+            do_rename(new_name)
+            if self._save_session:
+                self._save_session()
+
+        show_rename_dialog(self._page, self._c, d, {"do_rename": do_rename_and_save_session})
 
     def print_file(self, e=None):
         self._tab.save_content()

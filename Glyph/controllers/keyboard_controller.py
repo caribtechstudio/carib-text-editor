@@ -1,5 +1,5 @@
 """
-controllers/keyboard_controller.py — Dispatch des raccourcis clavier.
+controllers/keyboard_controller.py -- Dispatch des raccourcis clavier.
 """
 
 import flet as ft
@@ -66,7 +66,11 @@ class KeyboardController:
         elif e.key == "F6":
             self._check_spelling()
         elif e.key == "F7":
-            self._ai.run_ai_check()
+            self._ai.run_correction()
+        elif e.key == "F8":
+            self._ai.run_translate_fr_en()
+        elif e.key == "F9":
+            self._ai.run_reformulate()
         elif e.ctrl and e.key == "Z":
             if self._undo:
                 self._undo()

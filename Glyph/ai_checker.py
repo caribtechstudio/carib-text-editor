@@ -1,17 +1,15 @@
 """
-ai_checker.py — Module de correction IA pour Glyph v0.9
+ai_checker.py -- Module IA pour Glyph v0.9
 =================================================================
-Version Flet — utilise threading au lieu de QThread.
+Version Flet -- utilise threading au lieu de QThread.
 Fournit la logique metier sans aucune dependance UI.
 
 Composants :
-  - OllamaManager       : detection, installation et gestion d'Ollama/modele
-  - OllamaInstaller     : telechargement d'Ollama dans un thread
-  - ModelPuller          : pull du modele ministral-3:3b dans un thread
-  - GrammarChecker       : appel REST a l'API Ollama dans un thread
-
-Les composants UI (SetupDialog, CorrectionPanel, etc.) sont desormais
-dans le fichier principal glyph.py (Flet).
+  - AVAILABLE_MODELS     : catalogue des modeles telechargeables
+  - OllamaManager        : detection, installation et gestion d'Ollama/modeles
+  - OllamaInstaller      : telechargement d'Ollama dans un thread
+  - ModelPuller           : pull d'un modele via `ollama pull` dans un thread
+  - AIProcessor           : appel REST a l'API Ollama (multi-mode) dans un thread
 
 Dependances Python : requests
 Dependances systeme : Ollama >= 0.13.1
@@ -45,13 +43,106 @@ except ImportError:
     _requests = None
     REQUESTS_AVAILABLE = False
 
+# ---------------------------------------------------------------------------
+# Imports internes
+# ---------------------------------------------------------------------------
+from ai_prompts import PROMPTS, USER_INSTRUCTIONS
+
 
 # ===========================================================================
-# Constantes
+# Catalogue des modeles disponibles
 # ===========================================================================
 
-OLLAMA_MODEL = "ministral-3:3b"
-MODEL_SIZE_DISPLAY = "3.0 GB"
+AVAILABLE_MODELS = [
+    {
+        "id": "qwen2.5:1.5b",
+        "name": "Qwen 2.5",
+        "params": "1.5B",
+        "size": "934 MB",
+        "size_bytes": 934 * 1024 * 1024,
+        "description": "Modele polyvalent par Alibaba. Bon equilibre taille/qualite.",
+        "languages": "Multilingue (FR, EN, ZH, +)",
+        "recommended_ram": "2 Go",
+        "strengths": "Polyvalent, rapide, bon en francais",
+    },
+    {
+        "id": "mistral:3b",
+        "name": "Mistral 3B",
+        "params": "3B",
+        "size": "1.9 GB",
+        "size_bytes": 1900 * 1024 * 1024,
+        "description": "Par Mistral AI (France). Excellente qualite pour sa taille.",
+        "languages": "Multilingue (FR, EN, +)",
+        "recommended_ram": "4 Go",
+        "strengths": "Tres bon en francais, correction precise",
+    },
+    {
+        "id": "gemma2:2b",
+        "name": "Gemma 2",
+        "params": "2B",
+        "size": "1.6 GB",
+        "size_bytes": 1600 * 1024 * 1024,
+        "description": "Par Google. Compact et performant, bon suivi d'instructions.",
+        "languages": "Multilingue (FR, EN, +)",
+        "recommended_ram": "3 Go",
+        "strengths": "Suivi d'instructions precis, rapide",
+    },
+    {
+        "id": "llama3.2:1b",
+        "name": "Llama 3.2",
+        "params": "1B",
+        "size": "1.3 GB",
+        "size_bytes": 1300 * 1024 * 1024,
+        "description": "Par Meta. Le plus leger de la famille Llama, tres rapide.",
+        "languages": "Multilingue (FR, EN, +)",
+        "recommended_ram": "2 Go",
+        "strengths": "Ultra-rapide, leger",
+    },
+    {
+        "id": "smollm2:1.7b",
+        "name": "SmolLM2",
+        "params": "1.7B",
+        "size": "1.0 GB",
+        "size_bytes": 1000 * 1024 * 1024,
+        "description": "Par Hugging Face. Concu pour les appareils a ressources limitees.",
+        "languages": "Multilingue (FR, EN, +)",
+        "recommended_ram": "2 Go",
+        "strengths": "Optimise pour les PC modestes",
+    },
+    {
+        "id": "deepseek-r1:1.5b",
+        "name": "DeepSeek R1",
+        "params": "1.5B",
+        "size": "1.1 GB",
+        "size_bytes": 1100 * 1024 * 1024,
+        "description": "Par DeepSeek. Modele de raisonnement compact.",
+        "languages": "Multilingue (FR, EN, ZH, +)",
+        "recommended_ram": "2 Go",
+        "strengths": "Bon raisonnement, reformulation",
+    },
+    {
+        "id": "tinyllama",
+        "name": "TinyLlama",
+        "params": "1.1B",
+        "size": "637 MB",
+        "size_bytes": 637 * 1024 * 1024,
+        "description": "Le plus petit modele. Ideal pour tester sur des PC tres anciens.",
+        "languages": "Anglais principalement, FR basique",
+        "recommended_ram": "1.5 Go",
+        "strengths": "Ultra-leger, le plus petit telechargement",
+    },
+]
+
+# Index rapide par ID
+MODELS_BY_ID = {m["id"]: m for m in AVAILABLE_MODELS}
+
+# Modele par defaut recommande
+DEFAULT_MODEL_ID = "qwen2.5:1.5b"
+
+
+# ===========================================================================
+# Constantes API
+# ===========================================================================
 
 OLLAMA_API_URL    = "http://localhost:11434/api/generate"
 OLLAMA_HEALTH_URL = "http://localhost:11434/"
@@ -67,48 +158,21 @@ API_TIMEOUT = 120
 
 
 # ===========================================================================
-# Prompt systeme v0.7.1
+# Utilitaires
 # ===========================================================================
 
-GRAMMAR_SYSTEM_PROMPT = """Tu es un correcteur linguistique expert en français.
-Analyse le texte fourni et retourne UNIQUEMENT un JSON valide, sans texte avant ni après.
-
-RÈGLES DE CORRECTION (priorité absolue) :
-- Corrige toutes les fautes d'orthographe, de conjugaison, d'accords et de ponctuation
-- Rétablis la cohérence temporelle si un temps brise la logique grammaticale (ex: "il mangeas" -> "il mangea")
-- NE reformule PAS : zéro synonyme de remplacement, zéro réorganisation si la syntaxe est correcte
-- NE rajoute et NE supprime aucun mot, sauf si strictement nécessaire pour corriger une faute
-- Respecte la mise en page originale (paragraphes, tirets de dialogue, majuscules intentionnelles)
-- Ne touche pas aux noms propres, acronymes, mots étrangers intentionnels
-
-SUGGESTIONS (secondaires, uniquement si vraiment pertinent) :
-- Propose un synonyme UNIQUEMENT si un mot est répété plus de 2 fois ou est particulièrement banal
-- Propose une reformulation UNIQUEMENT si une phrase est grammaticalement correcte mais maladroite (redondance évidente, longueur excessive)
-- Maximum 3 suggestions par texte, ne pas suggérer si le texte est déjà bon
-
-FORMAT JSON OBLIGATOIRE :
-{
-  "corrections": [
-    {
-      "original": "texte fautif exact tel qu'il apparait dans le texte source",
-      "correction": "version corrigée",
-      "type": "orthographe|grammaire|conjugaison|accord|ponctuation",
-      "explication": "raison courte en 8 mots maximum"
-    }
-  ],
-  "suggestions": [
-    {
-      "original": "texte original exact tel qu'il apparait dans le texte source",
-      "suggestion": "version améliorée proposée",
-      "type": "synonyme|reformulation",
-      "explication": "raison courte en 8 mots maximum"
-    }
-  ],
-  "score": 0
-}
-
-Si le texte est correct : {"corrections": [], "suggestions": [], "score": 100}
-Reponds UNIQUEMENT avec ce JSON. Rien d'autre. Pas d'introduction, pas de commentaire."""
+def check_internet(timeout=5) -> bool:
+    """Verifie la connexion internet en contactant un serveur fiable."""
+    try:
+        urllib.request.urlopen("https://ollama.com", timeout=timeout)
+        return True
+    except Exception:
+        pass
+    try:
+        urllib.request.urlopen("https://www.google.com", timeout=timeout)
+        return True
+    except Exception:
+        return False
 
 
 # ===========================================================================
@@ -151,29 +215,56 @@ class OllamaManager:
             return False
 
     @staticmethod
-    def is_model_available() -> bool:
+    def is_model_available(model_id: str) -> bool:
+        """Verifie si un modele specifique est installe localement."""
         if not REQUESTS_AVAILABLE or _requests is None:
             return False
         try:
             r = _requests.get(OLLAMA_LIST_URL, timeout=5)
             data = r.json()
             names = [m.get("name", "") for m in data.get("models", [])]
-            return any(OLLAMA_MODEL in n or n in OLLAMA_MODEL for n in names)
+            return any(model_id in n or n.startswith(model_id.split(":")[0]) and model_id in n
+                       for n in names)
         except Exception:
             return False
 
     @staticmethod
-    def delete_model() -> tuple:
+    def list_installed_models() -> list[str]:
+        """Retourne la liste des IDs de modeles installes."""
+        if not REQUESTS_AVAILABLE or _requests is None:
+            return []
+        try:
+            r = _requests.get(OLLAMA_LIST_URL, timeout=5)
+            data = r.json()
+            return [m.get("name", "") for m in data.get("models", [])]
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_installed_catalog_models() -> list[dict]:
+        """Retourne les modeles du catalogue qui sont installes."""
+        installed = OllamaManager.list_installed_models()
+        result = []
+        for model in AVAILABLE_MODELS:
+            for inst_name in installed:
+                if model["id"] in inst_name or inst_name.startswith(model["id"]):
+                    result.append(model)
+                    break
+        return result
+
+    @staticmethod
+    def delete_model(model_id: str) -> tuple[bool, str]:
+        """Supprime un modele via `ollama rm`."""
         try:
             result = subprocess.run(
-                ["ollama", "rm", OLLAMA_MODEL],
+                ["ollama", "rm", model_id],
                 capture_output=True, text=True, timeout=30,
             )
             if result.returncode == 0:
-                return True, f"Modèle {OLLAMA_MODEL} supprimé avec succès."
+                return True, f"Modele {model_id} supprime."
             return False, result.stderr.strip() or "Erreur inconnue."
         except FileNotFoundError:
-            return False, "Ollama n'est pas installé."
+            return False, "Ollama n'est pas installe."
         except Exception as exc:
             return False, str(exc)
 
@@ -220,11 +311,15 @@ class OllamaInstaller:
         plat = platform.system()
 
         if url is None:
-            self._on_error("Plateforme non supportée pour l'installation automatique.")
+            self._on_error("Plateforme non supportee pour l'installation automatique.")
+            return
+
+        if not check_internet():
+            self._on_error("Pas de connexion internet. Verifiez votre reseau.")
             return
 
         try:
-            self._on_progress(5, "Connexion aux serveurs Ollama…")
+            self._on_progress(5, "Connexion aux serveurs Ollama...")
 
             if plat == "Linux":
                 self._install_linux(url)
@@ -240,7 +335,7 @@ class OllamaInstaller:
             def reporthook(block_num, block_size, total_size):
                 downloaded = block_num * block_size
                 pct = min(int(downloaded / total_size * 80), 80) if total_size > 0 else 0
-                self._on_progress(pct, f"Téléchargement Ollama… {downloaded // (1024*1024)} MB")
+                self._on_progress(pct, f"Telechargement Ollama... {downloaded // (1024*1024)} MB")
                 elapsed = time.time() - start_time[0]
                 if elapsed >= 0.5:
                     speed = (downloaded - last_downloaded[0]) / elapsed / (1024 * 1024)
@@ -249,29 +344,29 @@ class OllamaInstaller:
                     last_downloaded[0] = downloaded
 
             urllib.request.urlretrieve(url, dest, reporthook=reporthook)
-            self._on_progress(85, "Installation en cours…")
+            self._on_progress(85, "Installation en cours...")
 
             if plat == "Windows":
                 subprocess.run([dest, "/S"], check=True, timeout=120)
             elif plat == "Darwin":
                 subprocess.run(["unzip", "-o", dest, "-d", "/Applications"], check=True)
 
-            self._on_progress(100, "Ollama installé avec succès.")
-            self._on_done("Ollama a été installé. Relancez l'application si nécessaire.")
+            self._on_progress(100, "Ollama installe avec succes.")
+            self._on_done("Ollama a ete installe. Relancez l'application si necessaire.")
 
         except Exception as exc:
             self._on_error(f"Erreur d'installation : {exc}")
 
     def _install_linux(self, url):
-        self._on_progress(10, "Lancement du script d'installation Linux…")
+        self._on_progress(10, "Lancement du script d'installation Linux...")
         try:
             result = subprocess.run(
                 f"curl -fsSL {url} | sh",
                 shell=True, capture_output=True, text=True, timeout=300,
             )
             if result.returncode == 0:
-                self._on_progress(100, "Ollama installé.")
-                self._on_done("Ollama installé via le script officiel.")
+                self._on_progress(100, "Ollama installe.")
+                self._on_done("Ollama installe via le script officiel.")
             else:
                 self._on_error(result.stderr or "Erreur d'installation Linux.")
         except Exception as exc:
@@ -280,12 +375,12 @@ class OllamaInstaller:
 
 # ===========================================================================
 # Classe : ModelPuller
-# Telecharge ministral-3:3b via `ollama pull` dans un thread.
+# Telecharge un modele via `ollama pull` dans un thread.
 # ===========================================================================
 
 class ModelPuller:
     """
-    Pull du modele ministral-3:3b avec callbacks.
+    Pull d'un modele avec callbacks.
 
     Callbacks :
       on_progress(pct: int, msg: str)
@@ -295,8 +390,9 @@ class ModelPuller:
       on_cancelled()
     """
 
-    def __init__(self, on_progress=None, on_speed=None, on_done=None,
+    def __init__(self, model_id, on_progress=None, on_speed=None, on_done=None,
                  on_error=None, on_cancelled=None):
+        self._model_id = model_id
         self._on_progress = on_progress or (lambda *a: None)
         self._on_speed = on_speed or (lambda *a: None)
         self._on_done = on_done or (lambda: None)
@@ -316,11 +412,17 @@ class ModelPuller:
             self._process.terminate()
 
     def _run(self):
+        if not check_internet():
+            self._on_error("Pas de connexion internet. Verifiez votre reseau.")
+            return
+
         try:
-            self._on_progress(0, f"Démarrage du téléchargement de {OLLAMA_MODEL}…")
+            model_info = MODELS_BY_ID.get(self._model_id)
+            display_name = model_info["name"] if model_info else self._model_id
+            self._on_progress(0, f"Demarrage du telechargement de {display_name}...")
 
             self._process = subprocess.Popen(
-                ["ollama", "pull", OLLAMA_MODEL],
+                ["ollama", "pull", self._model_id],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -372,7 +474,7 @@ class ModelPuller:
                         last_time = now
                         last_completed = completed
 
-                    self._on_progress(pct, f"{status} — {completed_mb:.0f} / {total_mb:.0f} MB")
+                    self._on_progress(pct, f"{status} -- {completed_mb:.0f} / {total_mb:.0f} MB")
                 else:
                     self._on_progress(1, status)
 
@@ -383,10 +485,10 @@ class ModelPuller:
                 return
 
             if self._process.returncode == 0:
-                self._on_progress(100, "Modèle prêt.")
+                self._on_progress(100, "Modele pret.")
                 self._on_done()
             else:
-                self._on_error(f"ollama pull a échoué (code {self._process.returncode}).")
+                self._on_error(f"ollama pull a echoue (code {self._process.returncode}).")
 
         except FileNotFoundError:
             self._on_error("Ollama est introuvable dans le PATH.")
@@ -395,62 +497,74 @@ class ModelPuller:
 
 
 # ===========================================================================
-# Classe : GrammarChecker
-# Envoie le texte a l'API Ollama et parse la reponse JSON.
+# Classe : AIProcessor
+# Envoie le texte a l'API Ollama et parse la reponse JSON (multi-mode).
 # ===========================================================================
 
-class GrammarChecker:
+class AIProcessor:
     """
-    Correcteur grammatical IA via Ollama.
+    Processeur IA multi-mode via Ollama.
+
+    Supporte : correction, traduction, reformulation, resume, mots-cles.
 
     Callbacks :
-      on_result(corrections: list, suggestions: list, score: int)
+      on_result(parsed_data: dict)
       on_error(msg: str)
       on_status(msg: str)
+      on_stream(chunk: str)    — pour le mode streaming (optionnel)
     """
 
-    def __init__(self, on_result=None, on_error=None, on_status=None):
+    def __init__(self, on_result=None, on_error=None, on_status=None, on_stream=None):
         self._on_result = on_result or (lambda *a: None)
         self._on_error = on_error or (lambda *a: None)
         self._on_status = on_status or (lambda *a: None)
+        self._on_stream = on_stream or (lambda *a: None)
         self._thread = None
 
-    def check(self, text: str):
-        """Lance l'analyse dans un thread."""
-        self._thread = threading.Thread(target=self._run, args=(text,), daemon=True)
+    def process(self, text: str, mode: str, model_id: str, stream: bool = False):
+        """Lance le traitement IA dans un thread."""
+        self._thread = threading.Thread(
+            target=self._run, args=(text, mode, model_id, stream), daemon=True,
+        )
         self._thread.start()
 
     @property
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
 
-    def _run(self, text: str):
+    def _run(self, text: str, mode: str, model_id: str, stream: bool):
         if not REQUESTS_AVAILABLE:
             self._on_error(
-                "Le module 'requests' n'est pas installé.\n"
+                "Le module 'requests' n'est pas installe.\n"
                 "Lancez : pip install requests"
             )
             return
 
         if not text.strip():
-            self._on_result([], [], 100)
+            self._on_result({})
             return
 
-        self._on_status(f"Analyse avec {OLLAMA_MODEL}…")
+        system_prompt = PROMPTS.get(mode)
+        user_instruction = USER_INSTRUCTIONS.get(mode)
+        if not system_prompt or not user_instruction:
+            self._on_error(f"Mode IA inconnu : {mode}")
+            return
+
+        model_info = MODELS_BY_ID.get(model_id)
+        display_name = model_info["name"] if model_info else model_id
+        from ai_prompts import MODE_LABELS
+        mode_label = MODE_LABELS.get(mode, mode)
+        self._on_status(f"{mode_label} avec {display_name}...")
 
         payload = {
-            "model": OLLAMA_MODEL,
-            "prompt": (
-                "Voici le texte français à analyser :\n\n"
-                f"{text}\n\n"
-                "Retourne uniquement le JSON de corrections et suggestions."
-            ),
-            "system": GRAMMAR_SYSTEM_PROMPT,
-            "stream": False,
+            "model": model_id,
+            "prompt": user_instruction.format(text=text),
+            "system": system_prompt,
+            "stream": stream,
             "options": {
                 "temperature": 0.1,
                 "top_p": 0.9,
-                "num_predict": 2048,
+                "num_predict": 4096,
             },
         }
 
@@ -459,75 +573,78 @@ class GrammarChecker:
                 self._on_error("Le module 'requests' n'est pas disponible.")
                 return
 
-            response = _requests.post(OLLAMA_API_URL, json=payload, timeout=API_TIMEOUT)
-            response.raise_for_status()
-
-            raw = response.json().get("response", "").strip()
-            parsed = self._extract_json(raw)
-
-            if parsed is None:
-                self._on_error(
-                    "La réponse du modèle n'est pas du JSON valide.\n"
-                    f"Début : {raw[:200]}"
-                )
-                return
-
-            corrections = self._validate_corrections(parsed.get("corrections", []))
-            suggestions = self._validate_suggestions(parsed.get("suggestions", []))
-            score = max(0, min(100, int(parsed.get("score", 100))))
-
-            self._on_result(corrections, suggestions, score)
+            if stream:
+                self._run_streaming(payload)
+            else:
+                self._run_sync(payload)
 
         except Exception as exc:
             exc_name = type(exc).__name__
             if "ConnectionError" in exc_name:
                 self._on_error(
                     "Impossible de joindre Ollama (localhost:11434).\n"
-                    "Vérifiez qu'Ollama est bien lancé."
+                    "Verifiez qu'Ollama est bien lance."
                 )
             elif "Timeout" in exc_name:
                 self._on_error(
-                    f"Délai dépassé ({API_TIMEOUT} s). Le modèle est trop lent."
+                    f"Delai depasse ({API_TIMEOUT} s). Le modele est trop lent\n"
+                    "ou le texte est trop long. Essayez avec un texte plus court."
                 )
             else:
-                self._on_error(f"Erreur lors de l'analyse : {exc}")
+                self._on_error(f"Erreur lors du traitement : {exc}")
 
-    @staticmethod
-    def _validate_corrections(raw: list) -> list:
-        result = []
-        for c in raw:
-            if not isinstance(c, dict):
-                continue
-            orig = str(c.get("original", "")).strip()
-            corr = str(c.get("correction", "")).strip()
-            if orig and corr and orig != corr:
-                result.append({
-                    "original":    orig,
-                    "correction":  corr,
-                    "type":        str(c.get("type", "orthographe")).strip(),
-                    "explication": str(c.get("explication", "")).strip(),
-                })
-        return result
+    def _run_sync(self, payload):
+        """Appel synchrone (attend la reponse complete)."""
+        response = _requests.post(OLLAMA_API_URL, json=payload, timeout=API_TIMEOUT)
+        response.raise_for_status()
 
-    @staticmethod
-    def _validate_suggestions(raw: list) -> list:
-        result = []
-        for s in raw:
-            if not isinstance(s, dict):
+        raw = response.json().get("response", "").strip()
+        parsed = self._extract_json(raw)
+
+        if parsed is None:
+            self._on_error(
+                "La reponse du modele n'est pas du JSON valide.\n"
+                f"Debut : {raw[:200]}"
+            )
+            return
+
+        self._on_result(parsed)
+
+    def _run_streaming(self, payload):
+        """Appel en streaming (affiche au fur et a mesure)."""
+        response = _requests.post(
+            OLLAMA_API_URL, json=payload, timeout=API_TIMEOUT, stream=True,
+        )
+        response.raise_for_status()
+
+        full_response = ""
+        for line in response.iter_lines(decode_unicode=True):
+            if not line:
                 continue
-            orig = str(s.get("original", "")).strip()
-            sug = str(s.get("suggestion", "")).strip()
-            if orig and sug and orig != sug:
-                result.append({
-                    "original":    orig,
-                    "suggestion":  sug,
-                    "type":        str(s.get("type", "reformulation")).strip(),
-                    "explication": str(s.get("explication", "")).strip(),
-                })
-        return result
+            try:
+                data = json.loads(line)
+                chunk = data.get("response", "")
+                full_response += chunk
+                if chunk:
+                    self._on_stream(chunk)
+                if data.get("done", False):
+                    break
+            except json.JSONDecodeError:
+                continue
+
+        parsed = self._extract_json(full_response.strip())
+        if parsed is None:
+            self._on_error(
+                "La reponse du modele n'est pas du JSON valide.\n"
+                f"Debut : {full_response[:200]}"
+            )
+            return
+
+        self._on_result(parsed)
 
     @staticmethod
     def _extract_json(text: str):
+        """Extrait le premier objet JSON valide du texte."""
         text = re.sub(r"```(?:json)?", "", text).strip()
         start = text.find("{")
         if start == -1:

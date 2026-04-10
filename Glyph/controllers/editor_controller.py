@@ -82,13 +82,18 @@ class EditorController:
         self._last_snapshot = None
 
     def _schedule_auto_save(self):
-        """Reset le timer de sauvegarde auto (debounce)."""
+        """Reset le timer de sauvegarde auto (debounce).
+
+        Se déclenche pour tous les docs (avec ou sans chemin) :
+        - Avec chemin → sauvegarde sur disque + session.
+        - Sans chemin → sauvegarde session uniquement (contenu temporaire).
+        """
         if self._auto_save_timer:
             self._auto_save_timer.cancel()
         if not self.state.auto_save or not self._auto_save_callback:
             return
         d = self._cur_doc()
-        if not d or not d.path:
+        if not d:
             return
         self._auto_save_timer = threading.Timer(AUTO_SAVE_DELAY, self._trigger_auto_save)
         self._auto_save_timer.daemon = True

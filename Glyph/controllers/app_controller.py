@@ -35,6 +35,7 @@ from controllers.voice_controller import VoiceController
 from controllers.keyboard_controller import KeyboardController
 from controllers.search_controller import SearchController
 from models.file_manager import write_file
+from models.session_manager import save_session, load_session, restore_docs
 
 
 class AppController:
@@ -46,7 +47,10 @@ class AppController:
 
         # Modèles
         self.state = EditorState()
-        self.state.docs.append(Document())
+        self._session_data = load_session()  # chargé tôt, appliqué après config page
+        self._apply_session_settings()       # applique les préférences avant la page
+        if not self.state.docs:
+            self.state.docs.append(Document())
         self.spell = SpellCheckerWrapper(resource_path("ressource/spellchecker/fr.json.gz"))
         self.voice = VoiceManager()
         self.ph = PhrasePlaceHolder()
@@ -113,6 +117,7 @@ class AppController:
         self.ai_ctrl = AIController(
             page, self.state, self.editor, self.c,
             self.tab_ctrl, self.show_snack, self.rebuild,
+            clipboard=self.clipboard,
         )
         self.voice_ctrl = VoiceController(
             page, self.voice, self.editor, self.c,
@@ -136,6 +141,8 @@ class AppController:
         # Connecter auto-save : EditorController → FileController
         self.editor_ctrl._auto_save_callback = self.file_ctrl.auto_save
         self.file_ctrl._st_msg = self.st_msg
+        self.file_ctrl._save_session = self._save_session
+        self.tab_ctrl._on_tabs_changed = self._save_session
 
         # Raccourcis clavier (avec tracking Ctrl pour Ctrl+molette)
         async def _on_keyboard(e):
@@ -147,6 +154,10 @@ class AppController:
         page.window.prevent_close = True
         page.window.on_event = self._on_window_event
 
+        # Restaurer les onglets de la session précédente
+        self._apply_session_tabs()
+        self._session_data = None  # libérer la mémoire
+
         # Render initial
         self.update_status()
         self.rebuild()
@@ -157,7 +168,7 @@ class AppController:
     def _configure_page(self):
         p = self.page
         p.title = f"{APP_NAME} — v{APP_VERSION}"
-        p.theme_mode = ft.ThemeMode.LIGHT
+        p.theme_mode = ft.ThemeMode.LIGHT  # défaut, écrasé par _apply_session_settings
         p.padding = 0
         p.spacing = 0
         p.window = ft.Window(width=1280, height=820, min_width=800, min_height=550,
@@ -171,6 +182,66 @@ class AppController:
         }
         p.theme = ft.Theme(font_family="Nunito")
         p.dark_theme = ft.Theme(font_family="Nunito")
+
+    # ------------------------------------------------------------------
+    # Session persistence
+    # ------------------------------------------------------------------
+    def _save_session(self):
+        """Sauvegarde la session courante (options + onglets) sur disque."""
+        theme = "dark" if self.dark() else "light"
+        editor_content = self.editor.value if self.editor else None
+        save_session(self.state, theme, editor_content)
+
+    # ------------------------------------------------------------------
+    # Session restore
+    # ------------------------------------------------------------------
+    def _apply_session_settings(self):
+        """Applique les préférences sauvegardées (thème, zoom, etc.)."""
+        data = self._session_data
+        if not data or "settings" not in data:
+            return
+        s = data["settings"]
+        if s.get("theme") == "dark":
+            self.page.theme_mode = ft.ThemeMode.DARK
+        else:
+            self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.state.auto_save = bool(s.get("auto_save", False))
+        zoom = s.get("zoom_level", 100)
+        if isinstance(zoom, (int, float)) and 50 <= zoom <= 200:
+            self.state.zoom_level = int(zoom)
+        self.state.show_toolbar = bool(s.get("show_toolbar", True))
+        self.state.sidebar_collapsed = bool(s.get("sidebar_collapsed", True))
+        mode = s.get("mode", "text")
+        if mode in ("text", "calc", "read"):
+            self.state.mode = mode
+        # Modele IA selectionne
+        ai_model = s.get("ai_selected_model", "")
+        if isinstance(ai_model, str):
+            self.state.ai_selected_model = ai_model
+
+    def _apply_session_tabs(self):
+        """Restaure les onglets depuis la session sauvegardée."""
+        data = self._session_data
+        if not data or "tabs" not in data:
+            return
+        tabs_data = data["tabs"]
+        if not isinstance(tabs_data, list) or not tabs_data:
+            return
+        docs, missing = restore_docs(tabs_data)
+        if not docs:
+            return
+        self.state.docs = docs
+        active = data.get("active_tab", 0)
+        if isinstance(active, int) and 0 <= active < len(docs):
+            self.state.idx = active
+        else:
+            self.state.idx = 0
+        # Synchroniser l'éditeur avec l'onglet actif
+        self.tab_ctrl.sync_editor()
+        if missing:
+            self.show_snack(
+                f"{missing} fichier(s) introuvable(s) — restauré(s) depuis la session."
+            )
 
     # ------------------------------------------------------------------
     # Theme helpers
@@ -265,6 +336,7 @@ class AppController:
             "text": "Mode texte", "calc": "Mode calcul", "read": "Mode lecture"
         }.get(mode, ""))
         self.rebuild()
+        self._save_session()
 
     # ------------------------------------------------------------------
     # Undo / Redo
@@ -370,6 +442,7 @@ class AppController:
             return
         self.state.zoom_level = min(200, self.state.zoom_level + 10)
         self._apply_zoom(direction=1)
+        self._save_session()
 
     def zoom_out(self):
         if self.state.zoom_level <= 50:
@@ -377,12 +450,14 @@ class AppController:
             return
         self.state.zoom_level = max(50, self.state.zoom_level - 10)
         self._apply_zoom(direction=-1)
+        self._save_session()
 
     def zoom_reset(self):
         if self.state.zoom_level == 100:
             return
         self.state.zoom_level = 100
         self._apply_zoom()
+        self._save_session()
 
     # ------------------------------------------------------------------
     # Clipboard & Clear
@@ -581,6 +656,7 @@ class AppController:
             "toggle_theme": self.toggle_theme,
             "toggle_auto_save": self.toggle_auto_save,
             "is_auto_save": lambda: self.state.auto_save,
+            "show_model_manager": self.ai_ctrl.show_model_manager,
             "show_help": lambda: show_help(self.page, self.c),
             "show_info": lambda: show_info(self.page, self.c),
             "show_credits": lambda: show_credits(self.page, self.c),
@@ -595,7 +671,8 @@ class AppController:
         await self._request_close()
 
     async def _request_close(self):
-        """Demande de fermeture — propose de sauvegarder si nécessaire."""
+        """Demande de fermeture — sauvegarde la session puis propose de sauvegarder les docs."""
+        self._save_session()
         if not self.file_ctrl.has_unsaved_docs():
             await self.page.window.destroy()
             return
@@ -635,6 +712,7 @@ class AppController:
                     d.modified = False
                 except OSError:
                     pass
+        self._save_session()
         await self.page.window.destroy()
 
     def _show_close_dialog(self):
@@ -646,6 +724,7 @@ class AppController:
 
         async def quit_without_save(e):
             self.page.pop_dialog()
+            self._save_session()  # sauvegarder la session pour restaurer les onglets
             await self.page.window.destroy()
 
         def cancel(e):
@@ -691,10 +770,12 @@ class AppController:
         label = "activée" if self.state.auto_save else "désactivée"
         self.show_snack(f"Sauvegarde automatique {label}")
         self.rebuild()
+        self._save_session()
 
     def toggle_theme(self):
         self.page.theme_mode = ft.ThemeMode.LIGHT if self.dark() else ft.ThemeMode.DARK
         self.rebuild()
+        self._save_session()
 
     # ------------------------------------------------------------------
     # Callbacks dicts
@@ -706,6 +787,7 @@ class AppController:
             self.state, self.c, self._sidebar_callbacks(),
         )
         self.page.update()
+        self._save_session()
 
     def toggle_toolbar(self):
         self.state.show_toolbar = not self.state.show_toolbar
@@ -719,6 +801,7 @@ class AppController:
             self._toolbar_wrap.height = 0
             self._toolbar_wrap.opacity = 0.0
         self.page.update()
+        self._save_session()
 
     def _sidebar_callbacks(self):
         return {
@@ -737,6 +820,7 @@ class AppController:
         self.editor_ctrl.reset_snapshot_tracking()
         self.tab_ctrl.switch_tab(idx)
         self.search_ctrl.on_tab_switch()
+        self._save_session()
 
     def _tab_bar_callbacks(self):
         return {
@@ -835,7 +919,15 @@ class AppController:
     def _menu_bar_callbacks(self):
         return {
             "call_assistant": self.voice_ctrl.call_assistant,
-            "run_ai_check": self.ai_ctrl.run_ai_check,
+            "run_correction": self.ai_ctrl.run_correction,
+            "run_translate_fr_en": self.ai_ctrl.run_translate_fr_en,
+            "run_translate_en_fr": self.ai_ctrl.run_translate_en_fr,
+            "run_reformulate": self.ai_ctrl.run_reformulate,
+            "run_natural": self.ai_ctrl.run_natural,
+            "run_professional": self.ai_ctrl.run_professional,
+            "run_summarize": self.ai_ctrl.run_summarize,
+            "run_keywords": self.ai_ctrl.run_keywords,
+            "show_model_manager": self.ai_ctrl.show_model_manager,
             "check_spelling": self.check_spelling,
             "show_emoji_picker": self._show_emoji_picker,
             "show_voice_menu": self._show_voice_menu,
@@ -854,6 +946,8 @@ class AppController:
         return {
             "close_ai": self.ai_ctrl.close_ai,
             "apply_correction": self.ai_ctrl.apply_correction,
+            "replace_with_result": self.ai_ctrl.replace_with_result,
+            "copy_result": self.ai_ctrl.copy_result,
         }
 
     # ------------------------------------------------------------------

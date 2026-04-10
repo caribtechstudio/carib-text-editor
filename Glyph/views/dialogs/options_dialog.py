@@ -67,6 +67,10 @@ def show_options(page, c, dark, callbacks):
                     ),
                 ),
                 ft.Divider(color=c(T.L_BORDER, T.D_BORDER)),
+                # Gestion des modeles IA
+                dlg_btn("Modeles IA", ft.Icons.SMART_TOY_OUTLINED, c,
+                        lambda e: (page.pop_dialog(), callbacks["show_model_manager"]())),
+                ft.Divider(color=c(T.L_BORDER, T.D_BORDER)),
                 dlg_btn("Aide", ft.Icons.HELP_OUTLINE, c,
                         lambda e: (page.pop_dialog(), callbacks["show_help"]())),
                 dlg_btn("Informations", ft.Icons.INFO_OUTLINE, c,

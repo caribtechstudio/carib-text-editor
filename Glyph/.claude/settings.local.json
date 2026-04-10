@@ -60,7 +60,15 @@
       "Bash(python -c \"import controllers.app_controller; import views.menu_bar; import controllers.keyboard_controller; print\\('OK'\\)\")",
       "Bash(python -c \"import flet as ft; e = ft.ScrollEvent; print\\([a for a in dir\\(e\\) if not a.startswith\\('_'\\)]\\)\")",
       "Bash(python -c \"import flet as ft; print\\([a for a in dir\\(ft\\) if 'scroll' in a.lower\\(\\) or 'Scroll' in a]\\)\")",
-      "Bash(python -c \"import flet as ft; print\\([a for a in dir\\(ft.OnScrollEvent\\) if not a.startswith\\('_'\\)]\\)\")"
+      "Bash(python -c \"import flet as ft; print\\([a for a in dir\\(ft.OnScrollEvent\\) if not a.startswith\\('_'\\)]\\)\")",
+      "Bash(flet pack:*)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('models/session_manager.py', doraise=True\\); print\\('session_manager OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/app_controller.py', doraise=True\\); print\\('app_controller OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/file_controller.py', doraise=True\\); print\\('file_controller OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/tab_controller.py', doraise=True\\); print\\('tab_controller OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/editor_controller.py', doraise=True\\); print\\('editor_controller OK'\\)\")",
+      "Bash(python -c \"from models.session_manager import save_session, load_session, restore_docs; print\\('Imports OK'\\)\")",
+      "Bash(wc -l \"/g/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph\"/*.py)"
     ]
   }
 }

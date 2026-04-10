@@ -1,0 +1,6 @@
+flet>=0.84.0
+requests
+pyttsx3
+SpeechRecognition
+pyspellchecker
+pyautogui

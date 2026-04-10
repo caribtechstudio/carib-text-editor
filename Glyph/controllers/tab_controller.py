@@ -15,6 +15,7 @@ class TabController:
         self.ph = ph
         self._rebuild = rebuild_fn
         self._update_status = update_status_fn
+        self._on_tabs_changed = None  # callback session, défini par AppController
 
     def cur_doc(self):
         s = self.state
@@ -28,6 +29,8 @@ class TabController:
         self.state.idx = idx
         self.sync_editor()
         self._rebuild()
+        if self._on_tabs_changed:
+            self._on_tabs_changed()
 
     def switch_tab(self, idx):
         if idx == self.state.idx:
@@ -43,12 +46,16 @@ class TabController:
             self.state.idx = 0
             self.sync_editor()
             self._rebuild()
+            if self._on_tabs_changed:
+                self._on_tabs_changed()
             return
         self.state.docs.pop(idx)
         if self.state.idx >= len(self.state.docs):
             self.state.idx = len(self.state.docs) - 1
         self.sync_editor()
         self._rebuild()
+        if self._on_tabs_changed:
+            self._on_tabs_changed()
 
     def save_content(self):
         d = self.cur_doc()
