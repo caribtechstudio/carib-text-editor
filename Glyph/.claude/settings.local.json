@@ -68,7 +68,8 @@
       "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/tab_controller.py', doraise=True\\); print\\('tab_controller OK'\\)\")",
       "Bash(python -c \"import py_compile; py_compile.compile\\('controllers/editor_controller.py', doraise=True\\); print\\('editor_controller OK'\\)\")",
       "Bash(python -c \"from models.session_manager import save_session, load_session, restore_docs; print\\('Imports OK'\\)\")",
-      "Bash(wc -l \"/g/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph\"/*.py)"
+      "Bash(wc -l \"/g/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph\"/*.py)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('models/print_manager.py', doraise=True\\); py_compile.compile\\('controllers/file_controller.py', doraise=True\\); print\\('OK'\\)\")"
     ]
   }
 }

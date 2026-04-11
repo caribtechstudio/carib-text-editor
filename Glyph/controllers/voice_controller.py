@@ -19,18 +19,6 @@ class VoiceController:
         self._snack = show_snack
         self._rebuild = rebuild_fn
 
-    def call_assistant(self, e=None):
-        d = self._tab.cur_doc()
-        if not d:
-            return
-        msg = "Bonjour, je suis Glyph Assistant. Comment puis-je vous aider ?\n"
-        d.content = (self.editor.value or "") + msg
-        self.editor.value = d.content
-        d.modified = True
-        self._rebuild()
-        if TTS_AVAILABLE:
-            self._voice.speak_text(msg)
-
     def read_text(self, e=None):
         if not TTS_AVAILABLE:
             self._snack("pyttsx3 non installé.",

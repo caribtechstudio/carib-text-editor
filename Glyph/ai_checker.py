@@ -215,6 +215,15 @@ class OllamaManager:
             return False
 
     @staticmethod
+    def _model_matches(installed_name: str, model_id: str) -> bool:
+        """Compare un nom de modele installe avec un ID du catalogue."""
+        # Normaliser : retirer :latest s'il est present
+        n = installed_name.replace(":latest", "")
+        m = model_id.replace(":latest", "")
+        # Match exact ou par prefixe (base name sans tag)
+        return n == m or n.startswith(m.split(":")[0] + ":")
+
+    @staticmethod
     def is_model_available(model_id: str) -> bool:
         """Verifie si un modele specifique est installe localement."""
         if not REQUESTS_AVAILABLE or _requests is None:
@@ -223,8 +232,7 @@ class OllamaManager:
             r = _requests.get(OLLAMA_LIST_URL, timeout=5)
             data = r.json()
             names = [m.get("name", "") for m in data.get("models", [])]
-            return any(model_id in n or n.startswith(model_id.split(":")[0]) and model_id in n
-                       for n in names)
+            return any(OllamaManager._model_matches(n, model_id) for n in names)
         except Exception:
             return False
 
@@ -247,7 +255,7 @@ class OllamaManager:
         result = []
         for model in AVAILABLE_MODELS:
             for inst_name in installed:
-                if model["id"] in inst_name or inst_name.startswith(model["id"]):
+                if OllamaManager._model_matches(inst_name, model["id"]):
                     result.append(model)
                     break
         return result
@@ -520,9 +528,20 @@ class AIProcessor:
         self._on_status = on_status or (lambda *a: None)
         self._on_stream = on_stream or (lambda *a: None)
         self._thread = None
+        self._cancel_event = threading.Event()
+        self.elapsed_seconds: float = 0.0
+
+    def cancel(self):
+        """Demande l'annulation du traitement en cours."""
+        self._cancel_event.set()
+
+    @property
+    def cancelled(self) -> bool:
+        return self._cancel_event.is_set()
 
     def process(self, text: str, mode: str, model_id: str, stream: bool = False):
         """Lance le traitement IA dans un thread."""
+        self._cancel_event.clear()
         self._thread = threading.Thread(
             target=self._run, args=(text, mode, model_id, stream), daemon=True,
         )
@@ -556,6 +575,9 @@ class AIProcessor:
         mode_label = MODE_LABELS.get(mode, mode)
         self._on_status(f"{mode_label} avec {display_name}...")
 
+        # Limiter la taille de reponse pour les modes courts
+        max_tokens = 1024 if mode in ("keywords", "summarize") else 4096
+
         payload = {
             "model": model_id,
             "prompt": user_instruction.format(text=text),
@@ -564,7 +586,7 @@ class AIProcessor:
             "options": {
                 "temperature": 0.1,
                 "top_p": 0.9,
-                "num_predict": 4096,
+                "num_predict": max_tokens,
             },
         }
 
@@ -573,10 +595,15 @@ class AIProcessor:
                 self._on_error("Le module 'requests' n'est pas disponible.")
                 return
 
-            if stream:
-                self._run_streaming(payload)
-            else:
-                self._run_sync(payload)
+            import time as _time
+            t0 = _time.perf_counter()
+            try:
+                if stream:
+                    self._run_streaming(payload)
+                else:
+                    self._run_sync(payload)
+            finally:
+                self.elapsed_seconds = round(_time.perf_counter() - t0, 1)
 
         except Exception as exc:
             exc_name = type(exc).__name__
@@ -598,13 +625,19 @@ class AIProcessor:
         response = _requests.post(OLLAMA_API_URL, json=payload, timeout=API_TIMEOUT)
         response.raise_for_status()
 
+        if self.cancelled:
+            return
+
         raw = response.json().get("response", "").strip()
         parsed = self._extract_json(raw)
 
+        if self.cancelled:
+            return
+
         if parsed is None:
             self._on_error(
-                "La reponse du modele n'est pas du JSON valide.\n"
-                f"Debut : {raw[:200]}"
+                "La reponse du modele n'est pas valide.\n"
+                "Essayez avec un texte plus court ou un autre modele."
             )
             return
 
@@ -619,6 +652,8 @@ class AIProcessor:
 
         full_response = ""
         for line in response.iter_lines(decode_unicode=True):
+            if self.cancelled:
+                return
             if not line:
                 continue
             try:
@@ -632,11 +667,14 @@ class AIProcessor:
             except json.JSONDecodeError:
                 continue
 
+        if self.cancelled:
+            return
+
         parsed = self._extract_json(full_response.strip())
         if parsed is None:
             self._on_error(
-                "La reponse du modele n'est pas du JSON valide.\n"
-                f"Debut : {full_response[:200]}"
+                "La reponse du modele n'est pas valide.\n"
+                "Essayez avec un texte plus court ou un autre modele."
             )
             return
 
@@ -645,19 +683,45 @@ class AIProcessor:
     @staticmethod
     def _extract_json(text: str):
         """Extrait le premier objet JSON valide du texte."""
+        # Nettoyer les blocs markdown et caracteres de controle
         text = re.sub(r"```(?:json)?", "", text).strip()
+        text = text.replace("\r", "")
         start = text.find("{")
         if start == -1:
             return None
         depth = 0
+        in_string = False
+        escape_next = False
         for i, ch in enumerate(text[start:], start):
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == "\\":
+                if in_string:
+                    escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
             if ch == "{":
                 depth += 1
             elif ch == "}":
                 depth -= 1
                 if depth == 0:
+                    candidate = text[start: i + 1]
                     try:
-                        return json.loads(text[start: i + 1])
+                        return json.loads(candidate)
                     except json.JSONDecodeError:
-                        return None
+                        # Tenter de nettoyer les retours a la ligne dans les strings
+                        cleaned = re.sub(
+                            r'(?<=": ")(.*?)(?=")',
+                            lambda m: m.group(0).replace("\n", " "),
+                            candidate, flags=re.DOTALL,
+                        )
+                        try:
+                            return json.loads(cleaned)
+                        except json.JSONDecodeError:
+                            return None
         return None

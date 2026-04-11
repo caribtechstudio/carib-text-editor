@@ -22,6 +22,7 @@ def build_ai_panel(state, c, callbacks):
 
     callbacks attendus :
         close_ai(), apply_correction(original, replacement),
+        dismiss_correction(item, kind),
         replace_with_result(text), copy_result(text)
     """
     if not state.show_ai:
@@ -49,14 +50,18 @@ def build_ai_panel(state, c, callbacks):
                                   on_click=lambda e: callbacks["close_ai"]()),
                 ],
             ),
-            ft.Text(f"Modele : {model_name}", size=11,
-                    color=c(T.L_MUTED, T.D_MUTED)),
+            ft.Row(spacing=8, controls=[
+                ft.Text(f"Modele : {model_name}", size=11,
+                        color=c(T.L_MUTED, T.D_MUTED)),
+            ] + ([ft.Text(f"{state.ai_elapsed} s", size=11,
+                          color=c(T.L_ACCENT, T.D_ACCENT))]
+                 if state.ai_elapsed > 0 and not state.ai_loading else [])),
         ]),
     ))
 
     # Contenu selon l'etat
     if state.ai_loading:
-        items.append(_build_loading(state, c))
+        items.append(_build_loading(state, c, callbacks))
     elif state.ai_error:
         items.append(_build_error(state, c))
     elif state.ai_mode == "correction":
@@ -86,16 +91,26 @@ def build_ai_panel(state, c, callbacks):
 # Etats communs : loading, error, empty
 # ===========================================================================
 
-def _build_loading(state, c):
+def _build_loading(state, c, callbacks=None):
     mode_label = MODE_LABELS.get(state.ai_mode, "Traitement")
+    controls = [
+        ft.ProgressRing(width=32, height=32, color=c(T.L_ACCENT, T.D_ACCENT)),
+        ft.Text(f"{mode_label} en cours...", size=13,
+                color=c(T.L_TERTIARY, T.D_TERTIARY)),
+    ]
+    if callbacks and "close_ai" in callbacks:
+        controls.append(ft.TextButton(
+            "Annuler", height=28,
+            style=ft.ButtonStyle(
+                color=c(T.L_MUTED, T.D_MUTED),
+                shape=ft.RoundedRectangleBorder(radius=6),
+                text_style=ft.TextStyle(size=11)),
+            on_click=lambda e: callbacks["close_ai"](),
+        ))
     return ft.Container(
         padding=40, alignment=ft.Alignment(0, 0),
         content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16,
-                          controls=[
-            ft.ProgressRing(width=32, height=32, color=c(T.L_ACCENT, T.D_ACCENT)),
-            ft.Text(f"{mode_label} en cours...", size=13,
-                    color=c(T.L_TERTIARY, T.D_TERTIARY)),
-        ]),
+                          controls=controls),
     )
 
 
@@ -216,7 +231,9 @@ def _build_correction_results(items, state, c, callbacks):
                         side=ft.BorderSide(1, c(T.L_BORDER, T.D_BORDER)),
                         shape=ft.RoundedRectangleBorder(radius=6),
                         padding=ft.Padding(12, 0, 12, 0),
-                        text_style=ft.TextStyle(size=11))),
+                        text_style=ft.TextStyle(size=11)),
+                        on_click=lambda e, item=cr:
+                            callbacks["dismiss_correction"](item, "corr")),
                 ]),
             ]),
         ))
@@ -250,7 +267,9 @@ def _build_correction_results(items, state, c, callbacks):
                         side=ft.BorderSide(1, c(T.L_BORDER, T.D_BORDER)),
                         shape=ft.RoundedRectangleBorder(radius=6),
                         padding=ft.Padding(12, 0, 12, 0),
-                        text_style=ft.TextStyle(size=11))),
+                        text_style=ft.TextStyle(size=11)),
+                        on_click=lambda e, item=sg:
+                            callbacks["dismiss_correction"](item, "sugg")),
                 ]),
             ]),
         ))
@@ -417,7 +436,7 @@ def _build_summary_results(items, state, c, callbacks):
             ft.Row(spacing=8, controls=[
                 ft.Icon(ft.Icons.SUMMARIZE, size=18, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ft.Text("Resume", size=13, weight=ft.FontWeight.W_600,
-                        color=c(T.L_PRIMARY, T.D_PRIMARY)),
+                        color=c(T.L_PRIMARY, T.D_PRIMARY), expand=True),
                 ft.Container(
                     padding=ft.Padding(8, 2, 8, 2), border_radius=10,
                     bgcolor=c(T.L_ACCENT_LT, T.D_ACCENT_LT),
@@ -425,6 +444,13 @@ def _build_summary_results(items, state, c, callbacks):
                         f"Reduction : {state.ai_reduction}" if state.ai_reduction else "",
                         size=10, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ) if state.ai_reduction else ft.Container(),
+                ft.IconButton(
+                    icon=ft.Icons.CONTENT_COPY, icon_size=14,
+                    icon_color=c(T.L_MUTED, T.D_MUTED),
+                    tooltip="Copier le resume",
+                    style=ft.ButtonStyle(padding=4),
+                    on_click=lambda e: callbacks["copy_result"](e, state.ai_summary),
+                ),
             ]),
             ft.Container(
                 padding=16, border_radius=8,
@@ -446,11 +472,24 @@ def _build_summary_results(items, state, c, callbacks):
 
     # Points cles
     if state.ai_key_points:
+        kp_text = "\n".join(f"- {pt}" for pt in state.ai_key_points if isinstance(pt, str))
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 16),
             content=ft.Column(spacing=6, controls=[
-                ft.Text("Points cles", size=12, weight=ft.FontWeight.W_600,
-                        color=c(T.L_TERTIARY, T.D_TERTIARY)),
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Text("Points cles", size=12, weight=ft.FontWeight.W_600,
+                                color=c(T.L_TERTIARY, T.D_TERTIARY)),
+                        ft.IconButton(
+                            icon=ft.Icons.CONTENT_COPY, icon_size=14,
+                            icon_color=c(T.L_MUTED, T.D_MUTED),
+                            tooltip="Copier les points cles",
+                            style=ft.ButtonStyle(padding=4),
+                            on_click=lambda e, t=kp_text: callbacks["copy_result"](e, t),
+                        ),
+                    ],
+                ),
             ] + [
                 ft.Container(
                     padding=ft.Padding(12, 6, 12, 6),
@@ -502,14 +541,12 @@ def _build_keywords_results(items, state, c, callbacks):
             if isinstance(kw, dict):
                 word = kw.get("keyword", "")
                 ctx = kw.get("context", "")
-                primary_chips.append(ft.Tooltip(
-                    message=ctx,
-                    content=ft.Container(
-                        padding=ft.Padding(10, 5, 10, 5), border_radius=16,
-                        bgcolor=c(T.L_ACCENT, T.D_ACCENT),
-                        content=ft.Text(word, size=12, color="#FFFFFF",
-                                        weight=ft.FontWeight.W_500),
-                    ),
+                primary_chips.append(ft.Container(
+                    padding=ft.Padding(10, 5, 10, 5), border_radius=16,
+                    bgcolor=c(T.L_ACCENT, T.D_ACCENT),
+                    tooltip=ctx,
+                    content=ft.Text(word, size=12, color="#FFFFFF",
+                                    weight=ft.FontWeight.W_500),
                 ))
 
         items.append(ft.Container(
@@ -528,14 +565,12 @@ def _build_keywords_results(items, state, c, callbacks):
             if isinstance(kw, dict):
                 word = kw.get("keyword", "")
                 ctx = kw.get("context", "")
-                secondary_chips.append(ft.Tooltip(
-                    message=ctx,
-                    content=ft.Container(
-                        padding=ft.Padding(10, 5, 10, 5), border_radius=16,
-                        border=ft.Border.all(1, c(T.L_BORDER, T.D_BORDER)),
-                        content=ft.Text(word, size=12,
-                                        color=c(T.L_SECONDARY, T.D_SECONDARY)),
-                    ),
+                secondary_chips.append(ft.Container(
+                    padding=ft.Padding(10, 5, 10, 5), border_radius=16,
+                    border=ft.Border.all(1, c(T.L_BORDER, T.D_BORDER)),
+                    tooltip=ctx,
+                    content=ft.Text(word, size=12,
+                                    color=c(T.L_SECONDARY, T.D_SECONDARY)),
                 ))
 
         items.append(ft.Container(

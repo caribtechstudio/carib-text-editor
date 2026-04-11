@@ -37,7 +37,7 @@ class EditorController:
             d.modified = True
             self._update_status()
             self._page.update()
-            self.editor.focus()
+            self._page.run_task(self.editor.focus)
             self._schedule_auto_save()
             return
         self._update_status()

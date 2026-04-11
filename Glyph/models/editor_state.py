@@ -50,6 +50,7 @@ class EditorState:
 
         # Processeur IA en cours
         self.ai_processor = None
+        self.ai_elapsed: float = 0.0  # temps de reponse en secondes
 
         # Modele selectionne (persiste en session)
         self.ai_selected_model: str = ""
@@ -93,7 +94,10 @@ class EditorState:
         if mode == "correction":
             self.ai_corr = self._validate_corrections(data.get("corrections", []))
             self.ai_sugg = self._validate_suggestions(data.get("suggestions", []))
-            self.ai_score = max(0, min(100, int(data.get("score", 100))))
+            try:
+                self.ai_score = max(0, min(100, int(float(data.get("score", 100)))))
+            except (ValueError, TypeError):
+                self.ai_score = 100
 
         elif mode in ("translate_fr_en", "translate_en_fr"):
             self.ai_translation = str(data.get("translation", "")).strip()

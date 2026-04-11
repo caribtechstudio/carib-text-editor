@@ -26,6 +26,8 @@ def show_emoji_picker(page, c, callbacks):
     cat_list = list(EMOJI_CATEGORIES.items())
     cat_grids = []
     cat_buttons_row = ft.Row(spacing=4, scroll=ft.ScrollMode.AUTO, controls=[])
+    cat_buttons_wrap = ft.Container(content=cat_buttons_row,
+                                    margin=ft.Margin(0, 0, 0, 8))
 
     def make_emoji_btn(char, code):
         return ft.Container(
@@ -90,7 +92,7 @@ def show_emoji_picker(page, c, callbacks):
         content=ft.Container(
             width=520, height=420,
             content=ft.Column(spacing=10, controls=[
-                search, cat_buttons_row, result_grid, grids_stack,
+                search, cat_buttons_wrap, result_grid, grids_stack,
             ]),
         ),
         actions=[

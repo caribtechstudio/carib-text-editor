@@ -13,7 +13,8 @@ class KeyboardController:
     def __init__(self, page, c, tab_ctrl, file_ctrl, ai_ctrl, voice_ctrl,
                  check_spelling, show_emoji_picker, request_close,
                  toggle_toolbar=None, undo=None, redo=None,
-                 search_ctrl=None, zoom_in=None, zoom_out=None):
+                 search_ctrl=None, zoom_in=None, zoom_out=None,
+                 set_mode=None):
         self._page = page
         self._c = c
         self._tab = tab_ctrl
@@ -30,6 +31,7 @@ class KeyboardController:
         self._zoom_in = zoom_in
         self._zoom_out = zoom_out
         self._zoom_reset = None
+        self._set_mode = set_mode
 
     async def on_keyboard_event(self, e: ft.KeyboardEvent):
         # Recherche : Ctrl+F ouvre/ferme, Escape ferme
@@ -55,8 +57,6 @@ class KeyboardController:
             self._file.print_file()
         elif e.key == "F1":
             show_help(self._page, self._c)
-        elif e.key == "F2":
-            self._voice.call_assistant()
         elif e.key == "F3":
             self._voice.read_text()
         elif e.key == "F4":
@@ -89,5 +89,14 @@ class KeyboardController:
         elif e.ctrl and e.key == "Numpad 0":
             if self._zoom_reset:
                 self._zoom_reset()
+        elif e.ctrl and e.key == "1":
+            if self._set_mode:
+                self._set_mode("text")
+        elif e.ctrl and e.key == "2":
+            if self._set_mode:
+                self._set_mode("calc")
+        elif e.ctrl and e.key == "3":
+            if self._set_mode:
+                self._set_mode("read")
         elif e.alt and e.key == "F4":
             await self._request_close()

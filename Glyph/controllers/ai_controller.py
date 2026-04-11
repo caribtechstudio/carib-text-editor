@@ -105,9 +105,11 @@ class AIController:
             show_setup_dialog(self._page, self._c, self.state)
             return
 
-        if self.state.ai_processor and self.state.ai_processor.is_running:
-            self._snack("Traitement IA deja en cours.")
-            return
+        try:
+            if self.state.ai_processor and self.state.ai_processor.is_running:
+                self.state.ai_processor.cancel()
+        except (AttributeError, RuntimeError):
+            pass
 
         # Preparer l'etat
         self.state.clear_ai_results()
@@ -123,6 +125,8 @@ class AIController:
         def on_result(data):
             state.dispatch_ai_result(mode, data)
             state.ai_loading = False
+            if state.ai_processor:
+                state.ai_elapsed = state.ai_processor.elapsed_seconds
             page.run_thread(rebuild)
 
         def on_error(msg):
@@ -198,15 +202,43 @@ class AIController:
         d.modified = True
         self._snack("Texte remplace.", self._c(T.L_SUCCESS, T.D_SUCCESS))
 
-    async def copy_result(self, e, text):
+    def copy_result(self, e=None, text=""):
         """Copie un texte dans le presse-papier."""
-        if not text or not self._clipboard:
+        if not text:
+            self._snack("Rien a copier.")
             return
-        await self._clipboard.set(text)
-        self._snack("Copie dans le presse-papier.", self._c(T.L_SUCCESS, T.D_SUCCESS))
+        if not self._clipboard:
+            return
+
+        page = self._page
+        snack = self._snack
+        c = self._c
+
+        async def _do_copy():
+            try:
+                await self._clipboard.set(text)
+                page.run_thread(lambda: snack("Texte copié.", c(T.L_SUCCESS, T.D_SUCCESS)))
+            except Exception:
+                page.run_thread(lambda: snack("Erreur lors de la copie.", c(T.L_ERROR, T.D_ERROR)))
+
+        self._page.run_task(_do_copy)
+
+    def dismiss_correction(self, item, kind):
+        """Retire une correction ou suggestion de la liste."""
+        if kind == "corr" and item in self.state.ai_corr:
+            self.state.ai_corr.remove(item)
+        elif kind == "sugg" and item in self.state.ai_sugg:
+            self.state.ai_sugg.remove(item)
+        self._rebuild()
 
     def close_ai(self):
-        """Ferme le panneau IA."""
+        """Ferme le panneau IA et annule tout traitement en cours."""
+        try:
+            if self.state.ai_processor and self.state.ai_processor.is_running:
+                self.state.ai_processor.cancel()
+        except (AttributeError, RuntimeError):
+            pass
+        self.state.ai_loading = False
         self.state.show_ai = False
         self._rebuild()
 

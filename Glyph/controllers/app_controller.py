@@ -62,7 +62,7 @@ class AppController:
         page.services.append(self.clipboard)
 
         # Status bar widgets
-        self.st_mode = ft.Text("Texte", size=12, color=self.c(T.L_ACCENT, T.D_ACCENT),
+        self.st_mode = ft.Text("Mode Texte", size=12, color=self.c(T.L_ACCENT, T.D_ACCENT),
                                font_family="Nunito SemiBold", weight=ft.FontWeight.W_600)
         self.st_msg = ft.Text("", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY), expand=True)
         self.st_chars = ft.Text("0 car.", size=12, color=self.c(T.L_TERTIARY, T.D_TERTIARY))
@@ -92,6 +92,7 @@ class AppController:
             animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
             animate_opacity=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
         )
+        self._tab_bar_wrap = ft.Container()
         self._editor_wrap = ft.Container(
             expand=True,
             scale=ft.Scale(scale=1.0),
@@ -135,6 +136,7 @@ class AppController:
             undo=self.undo, redo=self.redo,
             search_ctrl=self.search_ctrl,
             zoom_in=self.zoom_in, zoom_out=self.zoom_out,
+            set_mode=self.set_mode,
         )
         self.kb_ctrl._zoom_reset = self.zoom_reset
 
@@ -142,6 +144,7 @@ class AppController:
         self.editor_ctrl._auto_save_callback = self.file_ctrl.auto_save
         self.file_ctrl._st_msg = self.st_msg
         self.file_ctrl._save_session = self._save_session
+        self.file_ctrl._refresh_tab_bar = self._refresh_tab_bar
         self.tab_ctrl._on_tabs_changed = self._save_session
 
         # Raccourcis clavier (avec tracking Ctrl pour Ctrl+molette)
@@ -171,7 +174,7 @@ class AppController:
         p.theme_mode = ft.ThemeMode.LIGHT  # défaut, écrasé par _apply_session_settings
         p.padding = 0
         p.spacing = 0
-        p.window = ft.Window(width=1280, height=820, min_width=800, min_height=550,
+        p.window = ft.Window(width=1280, height=820, min_width=1050, min_height=550,
                               icon=resource_path("ressource/icon/icon.ico"))
 
         # Polices Nunito
@@ -273,8 +276,8 @@ class AppController:
         self.st_chars.value = f"{len(t)} car."
         self.st_words.value = f"{len(t.split()) if t.strip() else 0} mots"
         self.st_mode.value = {
-            "text": "Texte", "calc": "Calcul", "read": "Lecture"
-        }.get(self.state.mode, "Texte")
+            "text": "Mode Texte", "calc": "Mode Calcul", "read": "Mode Lecture"
+        }.get(self.state.mode, "Mode Texte")
 
         search = self.state.search
         if search.visible and search.query:
@@ -822,6 +825,11 @@ class AppController:
         self.search_ctrl.on_tab_switch()
         self._save_session()
 
+    def _refresh_tab_bar(self):
+        """Met à jour la barre d'onglets sans reconstruire toute l'interface."""
+        self._tab_bar_wrap.content = build_tab_bar(
+            self.state, self.c, self._tab_bar_callbacks())
+
     def _tab_bar_callbacks(self):
         return {
             "switch_tab": self._switch_tab,
@@ -918,7 +926,6 @@ class AppController:
 
     def _menu_bar_callbacks(self):
         return {
-            "call_assistant": self.voice_ctrl.call_assistant,
             "run_correction": self.ai_ctrl.run_correction,
             "run_translate_fr_en": self.ai_ctrl.run_translate_fr_en,
             "run_translate_en_fr": self.ai_ctrl.run_translate_en_fr,
@@ -928,7 +935,6 @@ class AppController:
             "run_summarize": self.ai_ctrl.run_summarize,
             "run_keywords": self.ai_ctrl.run_keywords,
             "show_model_manager": self.ai_ctrl.show_model_manager,
-            "check_spelling": self.check_spelling,
             "show_emoji_picker": self._show_emoji_picker,
             "show_voice_menu": self._show_voice_menu,
             "copy_text_handler": self._copy_text_handler,
@@ -940,12 +946,14 @@ class AppController:
             "toggle_search": self.search_ctrl.toggle_search,
             "zoom_in": self.zoom_in,
             "zoom_out": self.zoom_out,
+            "set_mode": self.set_mode,
         }
 
     def _ai_panel_callbacks(self):
         return {
             "close_ai": self.ai_ctrl.close_ai,
             "apply_correction": self.ai_ctrl.apply_correction,
+            "dismiss_correction": self.ai_ctrl.dismiss_correction,
             "replace_with_result": self.ai_ctrl.replace_with_result,
             "copy_result": self.ai_ctrl.copy_result,
         }
@@ -1046,10 +1054,12 @@ class AppController:
         self._sidebar.width = 56 if self.state.sidebar_collapsed else 240
         self._sidebar.content = build_sidebar(self.state, self.c, self._sidebar_callbacks())
 
+        self._tab_bar_wrap.content = build_tab_bar(self.state, self.c, self._tab_bar_callbacks())
+
         layout = ft.Row(expand=True, spacing=0, controls=[
             self._sidebar,
             ft.Column(expand=True, spacing=0, controls=[
-                build_tab_bar(self.state, self.c, self._tab_bar_callbacks()),
+                self._tab_bar_wrap,
                 ft.Container(
                     expand=True, bgcolor=self.c(T.L_EDITOR, T.D_EDITOR),
                     content=ft.Column(expand=True, spacing=0,

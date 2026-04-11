@@ -24,8 +24,9 @@ class FileController:
         self._tab = tab_ctrl
         self._snack = show_snack
         self._rebuild = rebuild_fn
-        self._st_msg = None     # sera défini par AppController
-        self._save_session = None  # sera défini par AppController
+        self._st_msg = None          # sera défini par AppController
+        self._save_session = None    # sera défini par AppController
+        self._refresh_tab_bar = None # sera défini par AppController
 
     async def open_file(self, e=None):
         result = await self._file_picker.pick_files(
@@ -107,7 +108,10 @@ class FileController:
                 d.modified = False
                 if self._st_msg:
                     self._st_msg.value = datetime.now().strftime("Enregistré à %Hh%M")
-                self._rebuild()
+                    self._st_msg.color = self._c(T.L_ACCENT, T.D_ACCENT)
+                if self._refresh_tab_bar:
+                    self._refresh_tab_bar()
+                self._page.update()
             except OSError:
                 if self._st_msg:
                     self._st_msg.value = "Échec de la sauvegarde auto"

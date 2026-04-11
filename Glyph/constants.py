@@ -6,7 +6,7 @@ import os
 import sys
 
 APP_NAME = "Glyph"
-APP_VERSION = "0.9"
+APP_VERSION = "0.10.1"
 
 MODE_TEXT = "text"
 MODE_CALC = "calc"

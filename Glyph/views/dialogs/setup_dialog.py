@@ -39,6 +39,13 @@ def show_setup_dialog(page, c, state):
 
     def check():
         """Verifie l'etat d'Ollama et rafraichit la liste."""
+        try:
+            _check_inner()
+        except Exception as ex:
+            status.value = f"Erreur : {ex}"
+            page.update()
+
+    def _check_inner():
         if not OllamaManager.is_ollama_installed():
             status.value = "Ollama n'est pas installe sur cet ordinateur."
             install_section.visible = True
@@ -77,7 +84,7 @@ def show_setup_dialog(page, c, state):
 
         for model in AVAILABLE_MODELS:
             is_installed = any(
-                model["id"] in n or n.startswith(model["id"].split(":")[0])
+                OllamaManager._model_matches(n, model["id"])
                 for n in installed_names
             )
             is_selected = state.ai_selected_model == model["id"]
@@ -267,6 +274,7 @@ def show_setup_dialog(page, c, state):
         prog.value = 0
         speed.visible = True
         speed.value = ""
+        cancel_btn.visible = True
         page.update()
 
         def on_done():
@@ -303,6 +311,7 @@ def show_setup_dialog(page, c, state):
         status.value = m
         prog.visible = False
         speed.visible = False
+        cancel_btn.visible = False
         page.update()
 
     # ---- Construction du dialog ----
@@ -334,8 +343,9 @@ def show_setup_dialog(page, c, state):
             ]),
         ),
         actions=[
-            ft.TextButton("Annuler telechargement",
+            cancel_btn := ft.TextButton("Annuler telechargement",
                           on_click=cancel_pull,
+                          visible=False,
                           style=ft.ButtonStyle(
                               color=c(T.L_WARNING, T.D_WARNING))),
             ft.TextButton("Fermer", on_click=close_dlg),

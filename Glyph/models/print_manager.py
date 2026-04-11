@@ -1,121 +1,114 @@
 """
-models/print_manager.py — Impression via Win32 GDI.
+models/print_manager.py — Impression via aperçu navigateur (HTML).
+
+Génère un fichier HTML temporaire stylé et l'ouvre dans le navigateur
+par défaut, dont le dialogue d'impression offre :
+  - Aperçu avant impression
+  - Export PDF (Microsoft Print to PDF)
+  - Choix de l'imprimante
 """
 
-import ctypes
-import ctypes.wintypes as wt
+import html
+import os
+import tempfile
 import threading
+import webbrowser
 
-try:
-    import win32con
-    WIN32_PRINT = True
-except ImportError:
-    WIN32_PRINT = False
+WIN32_PRINT = True  # toujours disponible (pas de dépendance externe)
 
 
 def print_document(title: str, text: str, on_success=None, on_error=None) -> None:
-    """Imprime un document via la boîte d'impression Windows (dans un thread)."""
-    if not WIN32_PRINT:
-        if on_error:
-            on_error("pywin32 non installé.")
-        return
+    """Ouvre un aperçu d'impression dans le navigateur par défaut."""
 
     def _do_print():
-        class PRINTDLGW(ctypes.Structure):
-            _fields_ = [
-                ("lStructSize",         wt.DWORD),
-                ("hwndOwner",           wt.HWND),
-                ("hDevMode",            wt.HANDLE),
-                ("hDevNames",           wt.HANDLE),
-                ("hDC",                 wt.HDC),
-                ("Flags",               wt.DWORD),
-                ("nFromPage",           wt.WORD),
-                ("nToPage",             wt.WORD),
-                ("nMinPage",            wt.WORD),
-                ("nMaxPage",            wt.WORD),
-                ("nCopies",             wt.WORD),
-                ("hInstance",           wt.HINSTANCE),
-                ("lCustData",           ctypes.POINTER(ctypes.c_long)),
-                ("lpfnPrintHook",       ctypes.c_void_p),
-                ("lpfnSetupHook",       ctypes.c_void_p),
-                ("lpPrintTemplateName", wt.LPCWSTR),
-                ("lpSetupTemplateName", wt.LPCWSTR),
-                ("hPrintTemplate",      wt.HANDLE),
-                ("hSetupTemplate",      wt.HANDLE),
-            ]
-
-        PD_RETURNDC    = 0x00000100
-        PD_NOPAGENUMS  = 0x00000008
-        PD_NOSELECTION = 0x00000004
-
         try:
-            pd = PRINTDLGW()
-            pd.lStructSize = ctypes.sizeof(PRINTDLGW)
-            pd.Flags = PD_RETURNDC | PD_NOPAGENUMS | PD_NOSELECTION
+            escaped_title = html.escape(title or "Document")
+            escaped_text = html.escape(text or "")
 
-            if not ctypes.windll.comdlg32.PrintDlgW(ctypes.byref(pd)):
-                return  # Annulé
+            html_content = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{escaped_title}</title>
+<style>
+  @media print {{
+    @page {{
+      margin: 2cm;
+    }}
+    body {{
+      margin: 0;
+    }}
+    .no-print {{
+      display: none !important;
+    }}
+  }}
+  @media screen {{
+    body {{
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }}
+  }}
+  body {{
+    font-family: 'Segoe UI', 'Nunito', sans-serif;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #1a1a1a;
+    background: #fff;
+  }}
+  h1 {{
+    font-size: 14pt;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }}
+  pre {{
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Segoe UI', 'Nunito', sans-serif;
+    font-size: 12pt;
+    line-height: 1.6;
+    margin: 0;
+  }}
+  .no-print {{
+    text-align: center;
+    padding: 16px;
+    margin-bottom: 24px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    color: #555;
+    font-size: 10pt;
+  }}
+</style>
+</head>
+<body>
+<div class="no-print">
+  Utilisez <strong>Ctrl+P</strong> pour ouvrir le dialogue d'impression
+  ou cliquez sur le bouton ci-dessous.<br><br>
+  <button onclick="window.print()"
+    style="padding:8px 24px;font-size:11pt;border:1px solid #ccc;
+           border-radius:6px;background:#fff;cursor:pointer;">
+    Imprimer / Enregistrer en PDF
+  </button>
+</div>
+<h1>{escaped_title}</h1>
+<pre>{escaped_text}</pre>
+<script>
+  // Ouvrir le dialogue d'impression automatiquement
+  window.onload = function() {{
+    setTimeout(function() {{ window.print(); }}, 400);
+  }};
+</script>
+</body>
+</html>"""
 
-            hdc = pd.hDC
-            gdi = ctypes.windll.gdi32
+            # Écrire dans un fichier temporaire qui persiste
+            fd, path = tempfile.mkstemp(suffix=".html", prefix="glyph_print_")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(html_content)
 
-            dpi_y = gdi.GetDeviceCaps(hdc, win32con.LOGPIXELSY)
-            font_h = -int(11 * dpi_y / 72)
-            hfont = gdi.CreateFontW(
-                font_h, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0,
-                "Courier New"
-            )
-            gdi.SelectObject(hdc, hfont)
-
-            page_w = gdi.GetDeviceCaps(hdc, win32con.HORZRES)
-            page_h = gdi.GetDeviceCaps(hdc, win32con.VERTRES)
-            margin_x = int(page_w * 0.05)
-            margin_y = int(page_h * 0.05)
-            max_y = page_h - margin_y
-
-            class TEXTMETRICW(ctypes.Structure):
-                _fields_ = [
-                    ("tmHeight", ctypes.c_long),
-                    ("tmAscent", ctypes.c_long),
-                    ("tmDescent", ctypes.c_long),
-                    ("tmInternalLeading", ctypes.c_long),
-                    ("tmExternalLeading", ctypes.c_long),
-                ] + [(f"_pad{i}", ctypes.c_long) for i in range(15)]
-
-            tm = TEXTMETRICW()
-            gdi.GetTextMetricsW(hdc, ctypes.byref(tm))
-            line_h = int((tm.tmHeight + tm.tmExternalLeading) * 1.2)
-
-            class DOCINFOW(ctypes.Structure):
-                _fields_ = [
-                    ("cbSize",       ctypes.c_int),
-                    ("lpszDocName",  wt.LPCWSTR),
-                    ("lpszOutput",   wt.LPCWSTR),
-                    ("lpszDatatype", wt.LPCWSTR),
-                    ("fwType",       wt.DWORD),
-                ]
-
-            di = DOCINFOW()
-            di.cbSize = ctypes.sizeof(DOCINFOW)
-            di.lpszDocName = title
-
-            gdi.StartDocW(hdc, ctypes.byref(di))
-            gdi.StartPage(hdc)
-            y = margin_y
-
-            for line in text.split("\n"):
-                if y + line_h > max_y:
-                    gdi.EndPage(hdc)
-                    gdi.StartPage(hdc)
-                    y = margin_y
-                out = line if line else " "
-                gdi.TextOutW(hdc, margin_x, y, out, len(out))
-                y += line_h
-
-            gdi.EndPage(hdc)
-            gdi.EndDoc(hdc)
-            gdi.DeleteObject(hfont)
-            ctypes.windll.user32.ReleaseDC(None, hdc)
+            webbrowser.open(f"file:///{path.replace(os.sep, '/')}")
 
             if on_success:
                 on_success()
