@@ -67,6 +67,14 @@ class EditorState:
         # Recherche
         self.search = SearchState()
 
+        # Autocompletion
+        self.ac_enabled: bool = True          # activer/desactiver
+        self.ac_suggestions: list[str] = []   # mots proposes (local)
+        self.ac_ai_suggestion: str = ""       # phrase IA
+        self.ac_selected: int = 0             # index selectionne dans la popup
+        self.ac_visible: bool = False         # popup affichee
+        self.ac_prefix: str = ""              # prefix en cours de saisie
+
     def clear_ai_results(self):
         """Remet a zero tous les resultats IA."""
         self.ai_loading = False

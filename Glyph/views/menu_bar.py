@@ -4,6 +4,7 @@ views/menu_bar.py -- Barre d'outils d'edition flottante.
 
 import flet as ft
 
+from constants import svg_icon, svg_icon_btn
 from theme import T
 
 
@@ -19,19 +20,11 @@ def build_menu_bar(c, callbacks):
         run_correction, run_translate, run_reformulate,
         show_model_manager
     """
+    ico_c = c(T.L_SECONDARY, T.D_SECONDARY)
 
-    def tool_btn(tooltip, icon, on_click):
-        return ft.IconButton(
-            icon=icon, icon_size=17,
-            icon_color=c(T.L_SECONDARY, T.D_SECONDARY),
-            tooltip=tooltip,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=6),
-                padding=6,
-                overlay_color={ft.ControlState.HOVERED: c(T.L_HOVER, T.D_HOVER)},
-            ),
-            on_click=on_click,
-        )
+    def tool_btn(tooltip, icon_name, on_click):
+        return svg_icon_btn(icon_name, size=20, color=ico_c,
+                            tooltip=tooltip, on_click=on_click, padding=6)
 
     def sep():
         return ft.Container(width=1, height=20, bgcolor=c(T.L_BORDER, T.D_BORDER),
@@ -45,8 +38,7 @@ def build_menu_bar(c, callbacks):
         )
 
     translate_menu = ft.SubmenuButton(
-        content=ft.Icon(ft.Icons.TRANSLATE, size=17,
-                        color=c(T.L_SECONDARY, T.D_SECONDARY)),
+        content=svg_icon("language-exchange", size=20, color=ico_c),
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=6),
             padding=6,
@@ -62,8 +54,7 @@ def build_menu_bar(c, callbacks):
 
     # --- Sous-menu Reformulation ---
     reformulate_menu = ft.SubmenuButton(
-        content=ft.Icon(ft.Icons.AUTO_FIX_HIGH, size=17,
-                        color=c(T.L_SECONDARY, T.D_SECONDARY)),
+        content=svg_icon("sparkles", size=20, color=ico_c),
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=6),
             padding=6,
@@ -100,44 +91,44 @@ def build_menu_bar(c, callbacks):
             ),
             controls=[
                 # --- 3 boutons IA ---
-                tool_btn("Correction IA  F7", ft.Icons.SPELLCHECK,
+                tool_btn("Correction IA  F7", "badge-check",
                          lambda e: callbacks["run_correction"]()),
                 translate_menu,
                 reformulate_menu,
                 sep(),
-                tool_btn("Emojis", ft.Icons.EMOJI_EMOTIONS_OUTLINED,
+                tool_btn("Emojis", "laugh-beam",
                          lambda e: callbacks["show_emoji_picker"]()),
                 sep(),
-                tool_btn("Voix", ft.Icons.MIC_NONE,
+                tool_btn("Voix", "circle-microphone-lines",
                          lambda e: callbacks["show_voice_menu"]()),
                 sep(),
-                tool_btn("Copier", ft.Icons.CONTENT_COPY,
+                tool_btn("Copier", "clone",
                          callbacks["copy_text_handler"]),
-                tool_btn("Coller", ft.Icons.CONTENT_PASTE,
+                tool_btn("Coller", "paste",
                          callbacks["paste_text_handler"]),
-                tool_btn("Couper", ft.Icons.CONTENT_CUT,
+                tool_btn("Couper", "scissors",
                          callbacks["cut_text_handler"]),
-                tool_btn("Effacer tout", ft.Icons.DELETE_OUTLINE,
+                tool_btn("Effacer tout", "trash-xmark",
                          lambda e: callbacks["clear_text"]()),
                 sep(),
-                tool_btn("Annuler  Ctrl+Z", ft.Icons.UNDO,
+                tool_btn("Annuler  Ctrl+Z", "rotate-left",
                          callbacks["undo"]),
-                tool_btn("Retablir  Ctrl+Y", ft.Icons.REDO,
+                tool_btn("Retablir  Ctrl+Y", "turn-right",
                          callbacks["redo"]),
                 sep(),
-                tool_btn("Zoom arriere  Ctrl+Num-", ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                tool_btn("Zoom arriere  Ctrl+Num-", "minus-circle",
                          lambda e: callbacks["zoom_out"]()),
-                tool_btn("Zoom avant  Ctrl+Num+", ft.Icons.ADD_CIRCLE_OUTLINE,
+                tool_btn("Zoom avant  Ctrl+Num+", "square-plus",
                          lambda e: callbacks["zoom_in"]()),
                 sep(),
-                tool_btn("Rechercher  Ctrl+F", ft.Icons.SEARCH,
+                tool_btn("Rechercher  Ctrl+F", "search",
                          lambda e: callbacks["toggle_search"]()),
                 sep(),
-                tool_btn("Mode Texte  Ctrl+1", ft.Icons.EDIT_NOTE,
+                tool_btn("Mode Texte  Ctrl+1", "pen-field",
                          lambda e: callbacks["set_mode"]("text")),
-                tool_btn("Mode Calcul  Ctrl+2", ft.Icons.CALCULATE_OUTLINED,
+                tool_btn("Mode Calcul  Ctrl+2", "calculator-simple",
                          lambda e: callbacks["set_mode"]("calc")),
-                tool_btn("Mode Lecture  Ctrl+3", ft.Icons.MENU_BOOK,
+                tool_btn("Mode Lecture  Ctrl+3", "book-open-cover",
                          lambda e: callbacks["set_mode"]("read")),
             ],
         ),

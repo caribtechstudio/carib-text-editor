@@ -4,6 +4,7 @@ views/search_bar.py — Barre de recherche intégrée et surlignage des résulta
 
 import flet as ft
 
+from constants import svg_icon, svg_icon_btn
 from theme import T
 
 
@@ -126,7 +127,7 @@ def build_search_bar(c, search_state, callbacks):
         spacing=4,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Icon(ft.Icons.SEARCH, size=16, color=c(T.L_MUTED, T.D_MUTED)),
+            svg_icon("search", size=18, color=c(T.L_MUTED, T.D_MUTED)),
             search_field,
             counter,
             ft.Container(width=1, height=20, bgcolor=c(T.L_BORDER, T.D_BORDER)),
@@ -137,20 +138,14 @@ def build_search_bar(c, search_state, callbacks):
             _toggle_btn("Expression régulière", ".*", search_state.use_regex,
                         lambda e: callbacks["toggle_regex"]()),
             ft.Container(width=1, height=20, bgcolor=c(T.L_BORDER, T.D_BORDER)),
-            ft.IconButton(
-                icon=ft.Icons.KEYBOARD_ARROW_UP, icon_size=18,
-                icon_color=c(T.L_SECONDARY, T.D_SECONDARY),
-                tooltip="Précédent",
-                style=nav_btn_style,
-                on_click=lambda e: callbacks["on_prev"](),
-            ),
-            ft.IconButton(
-                icon=ft.Icons.KEYBOARD_ARROW_DOWN, icon_size=18,
-                icon_color=c(T.L_SECONDARY, T.D_SECONDARY),
-                tooltip="Suivant  Enter",
-                style=nav_btn_style,
-                on_click=lambda e: callbacks["on_next"](),
-            ),
+            svg_icon_btn("angle-circle-up", size=20,
+                         color=c(T.L_SECONDARY, T.D_SECONDARY),
+                         tooltip="Précédent", padding=2,
+                         on_click=lambda e: callbacks["on_prev"]()),
+            svg_icon_btn("angle-circle-down", size=20,
+                         color=c(T.L_SECONDARY, T.D_SECONDARY),
+                         tooltip="Suivant  Enter", padding=2,
+                         on_click=lambda e: callbacks["on_next"]()),
             ft.IconButton(
                 icon=ft.Icons.CLOSE, icon_size=16,
                 icon_color=c(T.L_TERTIARY, T.D_TERTIARY),

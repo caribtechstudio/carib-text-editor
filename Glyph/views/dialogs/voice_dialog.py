@@ -19,11 +19,11 @@ def show_voice_menu(page, c, callbacks):
         content=ft.Container(
             width=360,
             content=ft.Column(spacing=8, controls=[
-                dlg_btn("Lire le texte (F3)", ft.Icons.VOLUME_UP, c,
+                dlg_btn("Lire le texte (F3)", "headphones", c,
                         lambda e: (page.pop_dialog(), callbacks["read_text"]())),
-                dlg_btn("Dictée Google (F4)", ft.Icons.MIC, c,
+                dlg_btn("Dictée Google (F4)", "microphone-alt", c,
                         lambda e: (page.pop_dialog(), callbacks["voice_typing"]())),
-                dlg_btn("Dictée Microsoft (F5)", ft.Icons.KEYBOARD_VOICE, c,
+                dlg_btn("Dictée Microsoft (F5)", "circle-microphone-lines", c,
                         lambda e: (page.pop_dialog(), callbacks["voice_ms"]())),
             ]),
         ),

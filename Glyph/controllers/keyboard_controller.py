@@ -14,7 +14,7 @@ class KeyboardController:
                  check_spelling, show_emoji_picker, request_close,
                  toggle_toolbar=None, undo=None, redo=None,
                  search_ctrl=None, zoom_in=None, zoom_out=None,
-                 set_mode=None):
+                 set_mode=None, autocomplete_ctrl=None):
         self._page = page
         self._c = c
         self._tab = tab_ctrl
@@ -32,8 +32,26 @@ class KeyboardController:
         self._zoom_out = zoom_out
         self._zoom_reset = None
         self._set_mode = set_mode
+        self._ac = autocomplete_ctrl
 
     async def on_keyboard_event(self, e: ft.KeyboardEvent):
+        # Autocompletion : intercepter Tab, Escape, fleches quand la popup est ouverte
+        if self._ac and self._ac.state.ac_visible:
+            if e.key == "Tab":
+                if self._ac.accept():
+                    return
+            elif e.key == "Escape":
+                self._ac.dismiss()
+                return
+            elif e.key == "Arrow Down":
+                self._ac.navigate(1)
+                self._page.update()
+                return
+            elif e.key == "Arrow Up":
+                self._ac.navigate(-1)
+                self._page.update()
+                return
+
         # Recherche : Ctrl+F ouvre/ferme, Escape ferme
         if e.ctrl and e.key == "F":
             if self._search:

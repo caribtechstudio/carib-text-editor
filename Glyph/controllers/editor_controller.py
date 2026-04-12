@@ -26,6 +26,7 @@ class EditorController:
         self._auto_save_callback = None  # sera défini par AppController
         self._undo_timer: threading.Timer | None = None
         self._last_snapshot: str | None = None
+        self.autocomplete_ctrl = None  # sera défini par AppController
 
     def on_text_changed(self, e):
         d = self._cur_doc()
@@ -43,6 +44,8 @@ class EditorController:
         self._update_status()
         self.check_emoji_auto()
         self.detect_calc()
+        if self.autocomplete_ctrl:
+            self.autocomplete_ctrl.on_text_changed()
         self._page.update()
         self._schedule_auto_save()
 

@@ -13,6 +13,7 @@ import threading
 
 import flet as ft
 
+from constants import svg_icon
 from theme import T
 from ai_checker import (
     OllamaManager, OllamaInstaller, ModelPuller,
@@ -168,20 +169,20 @@ def show_setup_dialog(page, c, state):
                     # Ligne 3 : infos techniques
                     ft.Row(spacing=12, controls=[
                         ft.Row(spacing=4, controls=[
-                            ft.Icon(ft.Icons.DOWNLOAD, size=12,
-                                    color=c(T.L_MUTED, T.D_MUTED)),
+                            svg_icon("download", size=14,
+                                     color=c(T.L_MUTED, T.D_MUTED)),
                             ft.Text(model["size"], size=10,
                                     color=c(T.L_MUTED, T.D_MUTED)),
                         ]),
                         ft.Row(spacing=4, controls=[
-                            ft.Icon(ft.Icons.MEMORY, size=12,
-                                    color=c(T.L_MUTED, T.D_MUTED)),
+                            svg_icon("dashboard-monitor", size=14,
+                                     color=c(T.L_MUTED, T.D_MUTED)),
                             ft.Text(f"RAM : {model['recommended_ram']}", size=10,
                                     color=c(T.L_MUTED, T.D_MUTED)),
                         ]),
                         ft.Row(spacing=4, controls=[
-                            ft.Icon(ft.Icons.STAR_OUTLINE, size=12,
-                                    color=c(T.L_MUTED, T.D_MUTED)),
+                            svg_icon("sparkles", size=14,
+                                     color=c(T.L_MUTED, T.D_MUTED)),
                             ft.Text(model["strengths"], size=10,
                                     color=c(T.L_MUTED, T.D_MUTED)),
                         ]),
@@ -318,7 +319,7 @@ def show_setup_dialog(page, c, state):
     dlg = ft.AlertDialog(
         modal=True,
         title=ft.Row(spacing=10, controls=[
-            ft.Icon(ft.Icons.SMART_TOY_OUTLINED, size=22, color=c(T.L_ACCENT, T.D_ACCENT)),
+            svg_icon("user-robot", size=24, color=c(T.L_ACCENT, T.D_ACCENT)),
             ft.Text("Gestionnaire de modeles IA", size=16,
                     font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
         ]),

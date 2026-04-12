@@ -21,13 +21,19 @@ Licence : CC BY-NC-ND 4.0
 Version : 0.10.1
 """
 
+import sys
 import flet as ft
 
 from controllers.app_controller import AppController
 
+# Capturer le fichier passé en argument (double-clic depuis l'explorateur)
+_startup_file = None
+if len(sys.argv) > 1:
+    _startup_file = sys.argv[1]
+
 
 async def main(page: ft.Page):
-    AppController(page)
+    AppController(page, startup_file=_startup_file)
 
 
 if __name__ == "__main__":

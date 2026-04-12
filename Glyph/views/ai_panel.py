@@ -11,6 +11,7 @@ Affiche les resultats adaptes au mode actif :
 
 import flet as ft
 
+from constants import svg_icon, svg_icon_btn
 from theme import T
 from ai_prompts import MODE_LABELS
 from ai_checker import MODELS_BY_ID
@@ -118,7 +119,7 @@ def _build_error(state, c):
     return ft.Container(
         padding=24,
         content=ft.Row(spacing=10, controls=[
-            ft.Icon(ft.Icons.ERROR_OUTLINE, color=c(T.L_ERROR, T.D_ERROR), size=20),
+            svg_icon("document-circle-wrong", size=22, color=c(T.L_ERROR, T.D_ERROR)),
             ft.Text(state.ai_error, size=13, color=c(T.L_ERROR, T.D_ERROR), expand=True),
         ]),
     )
@@ -129,7 +130,7 @@ def _build_empty(c):
         padding=40, alignment=ft.Alignment(0, 0),
         content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=12,
                           controls=[
-            ft.Icon(ft.Icons.SMART_TOY_OUTLINED, size=40, color=c(T.L_MUTED, T.D_MUTED)),
+            svg_icon("user-robot", size=42, color=c(T.L_MUTED, T.D_MUTED)),
             ft.Text("Selectionnez une fonction IA", size=13,
                     color=c(T.L_TERTIARY, T.D_TERTIARY)),
         ]),
@@ -274,13 +275,32 @@ def _build_correction_results(items, state, c, callbacks):
             ]),
         ))
 
+    # Bouton copier toutes les corrections
+    if state.ai_corr or state.ai_sugg:
+        corr_parts = []
+        if state.ai_corr:
+            corr_lines = []
+            for cr in state.ai_corr:
+                corr_lines.append(f"- {cr['original']} -> {cr['correction']} ({cr.get('type', '')})")
+            corr_parts.append("Corrections :\n" + "\n".join(corr_lines))
+        if state.ai_sugg:
+            sugg_lines = []
+            for sg in state.ai_sugg:
+                sugg_lines.append(f"- {sg['original']} -> {sg['suggestion']} ({sg.get('type', '')})")
+            corr_parts.append("Suggestions :\n" + "\n".join(sugg_lines))
+        corr_text = f"Score : {state.ai_score}/100\n\n" + "\n\n".join(corr_parts)
+        items.append(_action_buttons(
+            c,
+            on_copy=lambda e, t=corr_text: callbacks["copy_result"](e, t),
+        ))
+
     # Texte parfait
     if not state.ai_corr and not state.ai_sugg:
         items.append(ft.Container(
             padding=24, alignment=ft.Alignment(0, 0),
             content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=8,
                               controls=[
-                ft.Icon(ft.Icons.CHECK_CIRCLE, size=40, color=c(T.L_SUCCESS, T.D_SUCCESS)),
+                svg_icon("badge-check", size=42, color=c(T.L_SUCCESS, T.D_SUCCESS)),
                 ft.Text("Texte parfait !", size=14, weight=ft.FontWeight.W_500,
                         color=c(T.L_SUCCESS, T.D_SUCCESS)),
             ]),
@@ -303,7 +323,7 @@ def _build_translation_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                ft.Icon(ft.Icons.TRANSLATE, size=18, color=c(T.L_ACCENT, T.D_ACCENT)),
+                svg_icon("language-exchange", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ft.Text(f"Traduction ({direction})", size=13, weight=ft.FontWeight.W_600,
                         color=c(T.L_PRIMARY, T.D_PRIMARY)),
             ]),
@@ -318,10 +338,11 @@ def _build_translation_results(items, state, c, callbacks):
     ))
 
     # Boutons Remplacer / Copier
+    copy_text = f"Traduction ({direction}) :\n{state.ai_translation}"
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_translation),
-        on_copy=lambda e: callbacks["copy_result"](e, state.ai_translation),
+        on_copy=lambda e, t=copy_text: callbacks["copy_result"](e, t),
     ))
 
     # Notes de traduction
@@ -357,11 +378,11 @@ def _build_reformulation_results(items, state, c, callbacks):
         return
 
     mode_icons = {
-        "reformulate": ft.Icons.AUTO_FIX_HIGH,
-        "natural": ft.Icons.CHAT_BUBBLE_OUTLINE,
-        "professional": ft.Icons.BUSINESS_CENTER,
+        "reformulate": "sparkles",
+        "natural": "text",
+        "professional": "assessment",
     }
-    icon = mode_icons.get(state.ai_mode, ft.Icons.AUTO_FIX_HIGH)
+    icon_name = mode_icons.get(state.ai_mode, "sparkles")
     mode_label = MODE_LABELS.get(state.ai_mode, "Reformulation")
 
     # Texte reformule
@@ -369,7 +390,7 @@ def _build_reformulation_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                ft.Icon(icon, size=18, color=c(T.L_ACCENT, T.D_ACCENT)),
+                svg_icon(icon_name, size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ft.Text(mode_label, size=13, weight=ft.FontWeight.W_600,
                         color=c(T.L_PRIMARY, T.D_PRIMARY)),
             ]),
@@ -384,10 +405,11 @@ def _build_reformulation_results(items, state, c, callbacks):
     ))
 
     # Boutons
+    copy_text = f"{mode_label} :\n{state.ai_reformulation}"
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_reformulation),
-        on_copy=lambda e: callbacks["copy_result"](e, state.ai_reformulation),
+        on_copy=lambda e, t=copy_text: callbacks["copy_result"](e, t),
     ))
 
     # Changements
@@ -434,7 +456,7 @@ def _build_summary_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                ft.Icon(ft.Icons.SUMMARIZE, size=18, color=c(T.L_ACCENT, T.D_ACCENT)),
+                svg_icon("rectangle-list", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ft.Text("Resume", size=13, weight=ft.FontWeight.W_600,
                         color=c(T.L_PRIMARY, T.D_PRIMARY), expand=True),
                 ft.Container(
@@ -444,13 +466,9 @@ def _build_summary_results(items, state, c, callbacks):
                         f"Reduction : {state.ai_reduction}" if state.ai_reduction else "",
                         size=10, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ) if state.ai_reduction else ft.Container(),
-                ft.IconButton(
-                    icon=ft.Icons.CONTENT_COPY, icon_size=14,
-                    icon_color=c(T.L_MUTED, T.D_MUTED),
-                    tooltip="Copier le resume",
-                    style=ft.ButtonStyle(padding=4),
-                    on_click=lambda e: callbacks["copy_result"](e, state.ai_summary),
-                ),
+                svg_icon_btn("clone", size=16, color=c(T.L_MUTED, T.D_MUTED),
+                             tooltip="Copier le resume", padding=4,
+                             on_click=lambda e: callbacks["copy_result"](e, f"Resume :\n{state.ai_summary}")),
             ]),
             ft.Container(
                 padding=16, border_radius=8,
@@ -463,16 +481,17 @@ def _build_summary_results(items, state, c, callbacks):
     ))
 
     # Boutons
+    summary_copy = f"Resume :\n{state.ai_summary}"
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_summary),
-        on_copy=lambda e: callbacks["copy_result"](e, state.ai_summary),
+        on_copy=lambda e, t=summary_copy: callbacks["copy_result"](e, t),
         replace_label="Remplacer par le resume",
     ))
 
     # Points cles
     if state.ai_key_points:
-        kp_text = "\n".join(f"- {pt}" for pt in state.ai_key_points if isinstance(pt, str))
+        kp_text = "Points cles :\n" + "\n".join(f"- {pt}" for pt in state.ai_key_points if isinstance(pt, str))
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 16),
             content=ft.Column(spacing=6, controls=[
@@ -481,13 +500,9 @@ def _build_summary_results(items, state, c, callbacks):
                     controls=[
                         ft.Text("Points cles", size=12, weight=ft.FontWeight.W_600,
                                 color=c(T.L_TERTIARY, T.D_TERTIARY)),
-                        ft.IconButton(
-                            icon=ft.Icons.CONTENT_COPY, icon_size=14,
-                            icon_color=c(T.L_MUTED, T.D_MUTED),
-                            tooltip="Copier les points cles",
-                            style=ft.ButtonStyle(padding=4),
-                            on_click=lambda e, t=kp_text: callbacks["copy_result"](e, t),
-                        ),
+                        svg_icon_btn("clone", size=16, color=c(T.L_MUTED, T.D_MUTED),
+                                     tooltip="Copier les points cles", padding=4,
+                                     on_click=lambda e, t=kp_text: callbacks["copy_result"](e, t)),
                     ],
                 ),
             ] + [
@@ -520,7 +535,7 @@ def _build_keywords_results(items, state, c, callbacks):
             padding=ft.Padding(16, 16, 16, 8),
             content=ft.Column(spacing=8, controls=[
                 ft.Row(spacing=8, controls=[
-                    ft.Icon(ft.Icons.LABEL_IMPORTANT, size=18, color=c(T.L_ACCENT, T.D_ACCENT)),
+                    svg_icon("bullseye", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
                     ft.Text("Theme", size=13, weight=ft.FontWeight.W_600,
                             color=c(T.L_PRIMARY, T.D_PRIMARY)),
                 ]),
@@ -583,14 +598,16 @@ def _build_keywords_results(items, state, c, callbacks):
         ))
 
     # Bouton copier les mots-cles
-    all_kw = []
-    for kw in state.ai_primary_keywords:
-        if isinstance(kw, dict):
-            all_kw.append(kw.get("keyword", ""))
-    for kw in state.ai_secondary_keywords:
-        if isinstance(kw, dict):
-            all_kw.append(kw.get("keyword", ""))
-    kw_text = ", ".join(all_kw)
+    kw_parts = []
+    if state.ai_primary_keywords:
+        primary = [kw.get("keyword", "") for kw in state.ai_primary_keywords if isinstance(kw, dict)]
+        if primary:
+            kw_parts.append("Mots cles principaux :\n" + "\n".join(f"- {w}" for w in primary))
+    if state.ai_secondary_keywords:
+        secondary = [kw.get("keyword", "") for kw in state.ai_secondary_keywords if isinstance(kw, dict)]
+        if secondary:
+            kw_parts.append("Mots-cles secondaires :\n" + "\n".join(f"- {w}" for w in secondary))
+    kw_text = "\n\n".join(kw_parts)
 
     items.append(_action_buttons(
         c,

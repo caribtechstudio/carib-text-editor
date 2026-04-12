@@ -2,6 +2,7 @@
 controllers/app_controller.py — Contrôleur principal qui orchestre tout.
 """
 
+import os
 import ctypes
 import threading
 import flet as ft
@@ -34,6 +35,8 @@ from controllers.ai_controller import AIController
 from controllers.voice_controller import VoiceController
 from controllers.keyboard_controller import KeyboardController
 from controllers.search_controller import SearchController
+from controllers.autocomplete_controller import AutocompleteController
+from views.autocomplete_overlay import build_autocomplete_popup
 from models.file_manager import write_file
 from models.session_manager import save_session, load_session, restore_docs
 
@@ -41,8 +44,9 @@ from models.session_manager import save_session, load_session, restore_docs
 class AppController:
     """Point central de l'application — relie modèles, vues et contrôleurs."""
 
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, startup_file=None):
         self.page = page
+        self._startup_file = startup_file
         self._configure_page()
 
         # Modèles
@@ -92,6 +96,7 @@ class AppController:
             animate=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
             animate_opacity=ft.Animation(200, ft.AnimationCurve.EASE_OUT_CUBIC),
         )
+        self._ac_popup_wrap = ft.Container(visible=False)
         self._tab_bar_wrap = ft.Container()
         self._editor_wrap = ft.Container(
             expand=True,
@@ -128,6 +133,12 @@ class AppController:
             self.state, self.editor, self.state.search,
             self.tab_ctrl, self.update_status, self.rebuild, page,
         )
+        self.ac_ctrl = AutocompleteController(
+            self.state, self.editor, self.tab_ctrl.cur_doc,
+            self.rebuild, page,
+            refresh_popup_fn=self._update_ac_popup,
+        )
+        self.editor_ctrl.autocomplete_ctrl = self.ac_ctrl
         self.kb_ctrl = KeyboardController(
             page, self.c, self.tab_ctrl, self.file_ctrl,
             self.ai_ctrl, self.voice_ctrl,
@@ -137,6 +148,7 @@ class AppController:
             search_ctrl=self.search_ctrl,
             zoom_in=self.zoom_in, zoom_out=self.zoom_out,
             set_mode=self.set_mode,
+            autocomplete_ctrl=self.ac_ctrl,
         )
         self.kb_ctrl._zoom_reset = self.zoom_reset
 
@@ -161,6 +173,10 @@ class AppController:
         self._apply_session_tabs()
         self._session_data = None  # libérer la mémoire
 
+        # Ouvrir un fichier passé en argument (double-clic depuis l'explorateur)
+        if self._startup_file:
+            self._open_startup_file()
+
         # Render initial
         self.update_status()
         self.rebuild()
@@ -174,7 +190,7 @@ class AppController:
         p.theme_mode = ft.ThemeMode.LIGHT  # défaut, écrasé par _apply_session_settings
         p.padding = 0
         p.spacing = 0
-        p.window = ft.Window(width=1280, height=820, min_width=1050, min_height=550,
+        p.window = ft.Window(width=1280, height=820, min_width=1280, min_height=800,
                               icon=resource_path("ressource/icon/icon.ico"))
 
         # Polices Nunito
@@ -245,6 +261,36 @@ class AppController:
             self.show_snack(
                 f"{missing} fichier(s) introuvable(s) — restauré(s) depuis la session."
             )
+
+    def _open_startup_file(self):
+        """Ouvre un fichier passé en argument de ligne de commande."""
+        from models.file_manager import read_file
+        fp = self._startup_file
+        if not os.path.isfile(fp):
+            return
+        content = read_file(fp)
+        if content is None:
+            return
+        # Vérifier si le fichier est déjà ouvert dans un onglet
+        for i, d in enumerate(self.state.docs):
+            if d.path and os.path.normpath(d.path) == os.path.normpath(fp):
+                self.state.idx = i
+                self.tab_ctrl.sync_editor()
+                return
+        # Remplacer le document vide par défaut si c'est le seul onglet
+        if (len(self.state.docs) == 1
+                and not self.state.docs[0].path
+                and not self.state.docs[0].content
+                and not self.state.docs[0].modified):
+            self.state.docs[0].title = os.path.basename(fp)
+            self.state.docs[0].content = content
+            self.state.docs[0].path = fp
+            self.tab_ctrl.sync_editor()
+        else:
+            self.tab_ctrl.add_tab(
+                title=os.path.basename(fp), content=content, path=fp
+            )
+        self._save_session()
 
     # ------------------------------------------------------------------
     # Theme helpers
@@ -327,6 +373,13 @@ class AppController:
 
     def _on_text_changed(self, e):
         self.editor_ctrl.on_text_changed(e)
+
+    def _update_ac_popup(self):
+        """Met a jour le contenu de la popup d'autocompletion."""
+        popup = build_autocomplete_popup(self.state, self.c)
+        self._ac_popup_wrap.content = popup.content
+        self._ac_popup_wrap.visible = self.state.ac_visible
+        self._ac_popup_wrap.alignment = popup.alignment
 
     # ------------------------------------------------------------------
     # Modes
@@ -821,8 +874,13 @@ class AppController:
 
     def _switch_tab(self, idx):
         self.editor_ctrl.reset_snapshot_tracking()
+        self.ac_ctrl.dismiss()
         self.tab_ctrl.switch_tab(idx)
         self.search_ctrl.on_tab_switch()
+        # Mettre a jour le dictionnaire de mots pour le nouvel onglet
+        d = self.tab_ctrl.cur_doc()
+        if d and d.content:
+            self.ac_ctrl.update_trie_now(d.content)
         self._save_session()
 
     def _refresh_tab_bar(self):
@@ -1046,7 +1104,13 @@ class AppController:
             self.search_ctrl.highlight_container = None
             editor_area = ft.Container(expand=True, content=self.editor)
 
-        self._editor_wrap.content = editor_area
+        # Autocompletion overlay (au-dessus de l'editeur)
+        self._update_ac_popup()
+        editor_with_ac = ft.Stack(
+            expand=True,
+            controls=[editor_area, self._ac_popup_wrap],
+        )
+        self._editor_wrap.content = editor_with_ac
         self._scroll_detector.content = self._editor_wrap
         center_controls.append(self._scroll_detector)
 
