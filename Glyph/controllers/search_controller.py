@@ -9,37 +9,65 @@ class SearchController:
     """Gère la recherche : exécution, navigation, mise à jour de la status bar."""
 
     def __init__(self, state, editor, search_state, tab_ctrl,
-                 update_status, rebuild, page):
+                 update_status, rebuild, page, show_snack=None,
+                 refresh_layer=None):
+        self._snack = show_snack
         self._state = state
         self._editor = editor
         self._search = search_state
         self._tab = tab_ctrl
         self._update_status = update_status
         self._rebuild = rebuild
+        #: Redessine la couche de surlignage sans toucher au reste de
+        #: l'interface — en particulier sans recréer le champ de recherche.
+        self._refresh_layer = refresh_layer or rebuild
         self._page = page
-        # Widgets persistants mis à jour sans rebuild
-        self.counter_ref = None        # ft.Text — compteur "1/5"
-        self.highlight_container = None  # ft.Container — couche highlight
-        self._c = None                  # theme helper, défini par app_controller
+        #: Compteur « 1/5 » de la barre de recherche. Contrôle persistant :
+        #: sa valeur est écrite en place, la barre n'est jamais reconstruite
+        #: pendant la saisie (sinon le champ perdrait le focus).
+        self.counter_ref = None
 
     # ------------------------------------------------------------------
     # Ouverture / Fermeture
     # ------------------------------------------------------------------
+    @property
+    def visible(self) -> bool:
+        """La barre de recherche est-elle affichée ?
+
+        Exposée pour que les appelants n'aient pas à traverser deux niveaux
+        de champs privés (`ctrl._search._search.visible`).
+        """
+        return self._search.visible
+
     def toggle_search(self):
-        if self._search.visible:
+        if self._search.visible and not self._search.replace_visible:
             self.close_search()
         else:
+            self._search.replace_visible = False
             self.open_search()
+
+    def toggle_replace(self):
+        """Ctrl+H — ouvre la recherche avec le champ de remplacement deplie."""
+        if self._search.visible and self._search.replace_visible:
+            self.close_search()
+            return
+        self._search.visible = True
+        self._search.replace_visible = True
+        self._rebuild()
 
     def open_search(self):
         self._search.visible = True
         self._rebuild()
 
+    def seed_query(self, text: str):
+        """Pre-remplit la recherche (ex. : la selection courante)."""
+        if text and "\n" not in text and len(text) <= 200:
+            self._search.query = text
+
     def close_search(self):
         self._search.reset()
         self._clear_selection()
         self._update_status()
-        self.highlight_container = None
         self._rebuild()
 
     # ------------------------------------------------------------------
@@ -50,28 +78,22 @@ class SearchController:
         self._search_and_update()
 
     def _search_and_update(self):
-        """Exécute la recherche et met à jour le highlight.
+        """Exécute la recherche et met à jour le surlignage.
 
-        Si la structure change (passage de 0→N matches ou N→0 matches),
-        un rebuild complet est nécessaire pour créer/détruire le Stack.
-        Sinon, mise à jour légère des spans sans rebuild.
+        L'ancienne version reconstruisait toute l'interface dès que l'on
+        passait de « aucun résultat » à « au moins un » — donc typiquement au
+        troisième caractère tapé. Cela recréait le champ de recherche
+        lui-même, qui perdait alors le focus en pleine saisie.
+
+        La couche de surlignage étant désormais un contrôle permanent, il n'y
+        a plus de structure à créer ni à détruire : on remplace ses spans.
         """
-        had_matches = bool(self._search.matches)
         d = self._tab.cur_doc()
         if not d:
             return
         self._search.search(d.content)
-        has_matches = bool(self._search.matches)
-
-        # Structure change → rebuild (crée ou détruit le Stack overlay)
-        if had_matches != has_matches:
-            self._select_current_match()
-            self._rebuild()
-            return
-
-        # Même structure → mise à jour légère
         self._select_current_match()
-        self._refresh_highlight(d.content)
+        self._refresh_layer()
         self._refresh_counter()
         self._update_status()
         self._page.update()
@@ -94,7 +116,7 @@ class SearchController:
         self._search.go_next()
         self._select_current_match()
         self._focus_editor()
-        self._refresh_highlight_current()
+        self._refresh_layer()
         self._refresh_counter()
         self._update_status()
         self._page.update()
@@ -103,7 +125,7 @@ class SearchController:
         self._search.go_prev()
         self._select_current_match()
         self._focus_editor()
-        self._refresh_highlight_current()
+        self._refresh_layer()
         self._refresh_counter()
         self._update_status()
         self._page.update()
@@ -122,6 +144,52 @@ class SearchController:
     def toggle_regex(self):
         self._search.use_regex = not self._search.use_regex
         self._execute_search_rebuild()
+
+    # ------------------------------------------------------------------
+    # Remplacement
+    # ------------------------------------------------------------------
+    def on_replacement_change(self, e):
+        self._search.replacement = e.control.value or ""
+
+    def replace_current(self, e=None):
+        """Remplace l'occurrence courante puis passe a la suivante."""
+        d = self._tab.cur_doc()
+        if not d or not self._search.query:
+            return
+        self._tab.save_content()
+
+        new_text, replaced = self._search.replace_current(d.content)
+        if not replaced:
+            return
+
+        d.apply_change(new_text)
+        d.modified = True
+        self._editor.value = new_text
+        self._select_current_match()
+        self._rebuild()
+
+    def replace_all(self, e=None):
+        """Remplace toutes les occurrences en une seule etape annulable."""
+        d = self._tab.cur_doc()
+        if not d or not self._search.query:
+            return
+        self._tab.save_content()
+
+        new_text, count = self._search.replace_all(d.content)
+        if not count:
+            self._notify("Aucune occurrence a remplacer.")
+            return
+
+        d.apply_change(new_text)
+        d.modified = True
+        self._editor.value = new_text
+        self._select_current_match()
+        self._rebuild()
+        self._notify(f"{count} occurrence(s) remplacee(s).")
+
+    def _notify(self, message: str):
+        if self._snack:
+            self._snack(message)
 
     # ------------------------------------------------------------------
     # Sélection dans l'éditeur
@@ -146,25 +214,6 @@ class SearchController:
         self._editor.selection = ft.TextSelection(
             base_offset=cursor, extent_offset=cursor,
         )
-
-    # ------------------------------------------------------------------
-    # Highlight layer — mise à jour sans rebuild
-    # ------------------------------------------------------------------
-    def _refresh_highlight(self, text):
-        """Reconstruit les spans de la couche highlight."""
-        if not self.highlight_container or not self._c:
-            return
-        from views.search_bar import build_highlight_text
-        self.highlight_container.content = build_highlight_text(
-            text, self._search.matches, self._search.current_index, self._c,
-        )
-
-    def _refresh_highlight_current(self):
-        """Rafraîchit le highlight pour refléter le match courant."""
-        d = self._tab.cur_doc()
-        if not d:
-            return
-        self._refresh_highlight(d.content)
 
     # ------------------------------------------------------------------
     # Compteur dans la barre de recherche

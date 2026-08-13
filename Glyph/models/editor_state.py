@@ -55,6 +55,34 @@ class EditorState:
         # Modele selectionne (persiste en session)
         self.ai_selected_model: str = ""
 
+        # ---- Streaming et tracabilite ----
+        #: Texte brut recu au fil de l'eau (indicateur de progression).
+        self.ai_stream: str = ""
+        #: Zone du document reellement analysee — (debut, fin).
+        #: Permet d'appliquer une correction a la bonne occurrence.
+        self.ai_source_range: tuple[int, int] = (0, 0)
+        self.ai_source_text: str = ""
+        #: « fournisseur · modele » ayant produit le dernier resultat.
+        self.ai_model_used: str = ""
+        #: Consigne libre saisie via Ctrl+K.
+        self.ai_instruction: str = ""
+
+        # ---- Barre de commande IA (Ctrl+K) ----
+        self.kbar_visible: bool = False
+        self.kbar_query: str = ""
+
+        # ---- Revue de modification en diff inline ----
+        self.diff_active: bool = False
+        self.diff_original: str = ""
+        self.diff_proposed: str = ""
+        #: Bornes de la zone remplacee dans le document.
+        self.diff_range: tuple[int, int] = (0, 0)
+
+        # ---- Palette de commandes (Ctrl+Shift+P) ----
+        self.palette_visible: bool = False
+        self.palette_query: str = ""
+        self.palette_selected: int = 0
+
         # Barre d'outils
         self.show_toolbar: bool = True
 
@@ -67,13 +95,56 @@ class EditorState:
         # Recherche
         self.search = SearchState()
 
-        # Autocompletion
-        self.ac_enabled: bool = True          # activer/desactiver
-        self.ac_suggestions: list[str] = []   # mots proposes (local)
-        self.ac_ai_suggestion: str = ""       # phrase IA
-        self.ac_selected: int = 0             # index selectionne dans la popup
-        self.ac_visible: bool = False         # popup affichee
-        self.ac_prefix: str = ""              # prefix en cours de saisie
+        # ---- Autocompletion en texte fantome ----
+        self.ac_enabled: bool = True
+        #: Texte grise affiche apres le curseur. Il n'entre dans le document
+        #: que si l'utilisateur l'accepte.
+        self.ac_ghost: str = ""
+        #: Origine de la suggestion : "word" (dictionnaire local) ou "ai".
+        self.ac_source: str = ""
+        #: Une suggestion est-elle affichee ?
+        self.ac_visible: bool = False
+
+        # Position du curseur, tenue a jour par AppController
+        self.cursor: int = 0
+        self.selection: tuple[int, int] | None = None
+
+        # ---- Confort d'edition ----
+        #: Coloration syntaxique (detectee d'apres l'extension du fichier).
+        self.syntax_enabled: bool = True
+        #: Gouttiere de numeros de ligne. Desactivee par defaut : le TextField
+        #: de Flet enroule toujours les lignes longues, ce qui decale la
+        #: numerotation (voir views/syntax_view.py).
+        self.show_line_numbers: bool = False
+        #: Apercu Markdown cote a cote.
+        self.md_preview: bool = False
+
+        #: Traitement IA local force pour CE document uniquement.
+        #: Complete le mode confidentiel global de LLMManager : on peut
+        #: vouloir garder le cloud par defaut mais proteger un texte precis.
+        self.doc_private: dict[int, bool] = {}
+
+        #: Garder Glyph actif en arriere-plan a la fermeture. Les lancements
+        #: suivants passent par l'IPC et sont quasi instantanes.
+        self.stay_resident: bool = False
+
+        # ---- Espace de travail (dossier ouvert) ----
+        self.workspace_path: str = ""
+        #: Dossiers depliés dans l'arborescence (chemins normalises).
+        self.workspace_expanded_dirs: set[str] = set()
+
+        # Fichiers récents
+        self.recent_files: list[str] = []
+        self._max_recent: int = 7
+        self.recent_expanded: bool = False
+
+    def push_recent(self, path: str):
+        """Ajoute un chemin en tête de la liste MRU (dédupliqué, max 7)."""
+        import os
+        norm = os.path.normpath(path)
+        self.recent_files = [p for p in self.recent_files if os.path.normpath(p) != norm]
+        self.recent_files.insert(0, path)
+        self.recent_files = self.recent_files[:self._max_recent]
 
     def clear_ai_results(self):
         """Remet a zero tous les resultats IA."""
@@ -93,6 +164,8 @@ class EditorState:
         self.ai_theme = ""
         self.ai_primary_keywords = []
         self.ai_secondary_keywords = []
+        self.ai_stream = ""
+        self.ai_model_used = ""
 
     def dispatch_ai_result(self, mode: str, data: dict):
         """Distribue le resultat JSON parse dans les champs adaptes au mode."""

@@ -4,6 +4,8 @@ views/dialogs/rename_dialog.py — Dialogue de renommage de fichier.
 
 import flet as ft
 
+from constants import UI_FONT_STRONG
+
 from theme import T
 
 
@@ -35,7 +37,7 @@ def show_rename_dialog(page, c, document, callbacks):
 
     dlg = ft.AlertDialog(
         modal=True,
-        title=ft.Text("Renommer le fichier", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Renommer le fichier", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(width=360, content=name_field),
         actions=[
             ft.TextButton("Annuler", on_click=lambda ev: page.pop_dialog()),

@@ -71,7 +71,9 @@
       "Bash(wc -l \"/g/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph\"/*.py)",
       "Bash(python -c \"import py_compile; py_compile.compile\\('models/print_manager.py', doraise=True\\); py_compile.compile\\('controllers/file_controller.py', doraise=True\\); print\\('OK'\\)\")",
       "Bash(python -c \"import py_compile; py_compile.compile\\('views/sidebar.py', doraise=True\\); py_compile.compile\\('controllers/app_controller.py', doraise=True\\); print\\('OK'\\)\")",
-      "Bash(find \"G:/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph/\" -name \"*.py\" -exec grep -l \"ressource\\\\|resource_path\\\\|\\\\.png\\\\|\\\\.svg\\\\|\\\\.ico\" {} \\\\;)"
+      "Bash(find \"G:/Mon Drive/Arnaud/Game Dev/Python/Glyph - Text Editor/Glyph/\" -name \"*.py\" -exec grep -l \"ressource\\\\|resource_path\\\\|\\\\.png\\\\|\\\\.svg\\\\|\\\\.ico\" {} \\\\;)",
+      "Bash(python -c ' *)",
+      "Bash(python3 --version flet --version)"
     ]
   }
 }

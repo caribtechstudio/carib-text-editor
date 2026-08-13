@@ -1,0 +1,11 @@
+[tool.flet]
+app.name = "Glyph"
+app.description = "Éditeur de texte moderne — Notion / Untitled UI style"
+app.product_name = "Glyph"
+app.organization = "Arnaud"
+app.version = "0.12"
+app.bundle_id = "com.arnaud.glyph"
+
+[tool.flet.app.windows]
+# Icône de l'application (fichier .ico dans ressource/icon/)
+icon = "ressource/icon/icon.ico"

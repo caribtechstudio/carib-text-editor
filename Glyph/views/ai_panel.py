@@ -11,10 +11,9 @@ Affiche les resultats adaptes au mode actif :
 
 import flet as ft
 
-from constants import svg_icon, svg_icon_btn
+from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT_STRONG)
 from theme import T
 from ai_prompts import MODE_LABELS
-from ai_checker import MODELS_BY_ID
 
 
 def build_ai_panel(state, c, callbacks):
@@ -32,9 +31,11 @@ def build_ai_panel(state, c, callbacks):
     items = []
 
     # Header avec titre dynamique
-    mode_label = MODE_LABELS.get(state.ai_mode, "IA")
-    model_info = MODELS_BY_ID.get(state.ai_selected_model)
-    model_name = model_info["name"] if model_info else state.ai_selected_model or "Aucun"
+    if state.ai_mode == "free":
+        mode_label = state.ai_instruction[:48] or "Demande libre"
+    else:
+        mode_label = MODE_LABELS.get(state.ai_mode, "IA")
+    model_name = state.ai_model_used or "—"
 
     items.append(ft.Container(
         padding=ft.Padding(16, 14, 16, 14),
@@ -43,8 +44,8 @@ def build_ai_panel(state, c, callbacks):
             ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 controls=[
-                    ft.Text(mode_label, size=14, weight=ft.FontWeight.W_600,
-                            font_family="Nunito SemiBold",
+                    ft.Text(mode_label, size=14, weight=ft.FontWeight.W_700,
+                            font_family=UI_FONT_STRONG,
                             color=c(T.L_PRIMARY, T.D_PRIMARY)),
                     ft.IconButton(icon=ft.Icons.CLOSE, icon_size=18,
                                   icon_color=c(T.L_MUTED, T.D_MUTED),
@@ -52,7 +53,7 @@ def build_ai_panel(state, c, callbacks):
                 ],
             ),
             ft.Row(spacing=8, controls=[
-                ft.Text(f"Modele : {model_name}", size=11,
+                ft.Text(model_name, size=11,
                         color=c(T.L_MUTED, T.D_MUTED)),
             ] + ([ft.Text(f"{state.ai_elapsed} s", size=11,
                           color=c(T.L_ACCENT, T.D_ACCENT))]
@@ -69,7 +70,7 @@ def build_ai_panel(state, c, callbacks):
         _build_correction_results(items, state, c, callbacks)
     elif state.ai_mode in ("translate_fr_en", "translate_en_fr"):
         _build_translation_results(items, state, c, callbacks)
-    elif state.ai_mode in ("reformulate", "natural", "professional"):
+    elif state.ai_mode in ("reformulate", "natural", "professional", "free"):
         _build_reformulation_results(items, state, c, callbacks)
     elif state.ai_mode == "summarize":
         _build_summary_results(items, state, c, callbacks)
@@ -99,6 +100,12 @@ def _build_loading(state, c, callbacks=None):
         ft.Text(f"{mode_label} en cours...", size=13,
                 color=c(T.L_TERTIARY, T.D_TERTIARY)),
     ]
+    # Le streaming permet d'afficher la progression reelle plutot qu'un
+    # simple sablier : l'attente devient lisible.
+    streamed = len(getattr(state, "ai_stream", "") or "")
+    if streamed:
+        controls.append(ft.Text(f"{streamed} caracteres recus", size=11,
+                                color=c(T.L_MUTED, T.D_MUTED)))
     if callbacks and "close_ai" in callbacks:
         controls.append(ft.TextButton(
             "Annuler", height=28,
@@ -119,7 +126,7 @@ def _build_error(state, c):
     return ft.Container(
         padding=24,
         content=ft.Row(spacing=10, controls=[
-            svg_icon("document-circle-wrong", size=22, color=c(T.L_ERROR, T.D_ERROR)),
+            svg_icon("document-circle-wrong", size=ICON_MD, color=c(T.L_ERROR, T.D_ERROR)),
             ft.Text(state.ai_error, size=13, color=c(T.L_ERROR, T.D_ERROR), expand=True),
         ]),
     )
@@ -141,17 +148,29 @@ def _build_empty(c):
 # Boutons d'action communs
 # ===========================================================================
 
-def _action_buttons(c, on_replace=None, on_copy=None, replace_label="Remplacer"):
-    """Cree les boutons Remplacer / Copier."""
+def _action_buttons(c, on_replace=None, on_copy=None, replace_label="Remplacer",
+                    on_review=None):
+    """Cree les boutons Comparer / Remplacer / Copier."""
     btns = []
-    if on_replace:
-        btns.append(ft.ElevatedButton(
-            replace_label, height=32,
+    if on_review:
+        btns.append(ft.Button(
+                              "Comparer", height=32,
             bgcolor=c(T.L_ACCENT, T.D_ACCENT), color="#FFFFFF",
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=6),
                 padding=ft.Padding(16, 0, 16, 0),
                 text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_500)),
+            on_click=on_review,
+        ))
+    if on_replace:
+        btns.append(ft.OutlinedButton(
+            replace_label, height=32,
+            style=ft.ButtonStyle(
+                color=c(T.L_SECONDARY, T.D_SECONDARY),
+                side=ft.BorderSide(1, c(T.L_BORDER, T.D_BORDER)),
+                shape=ft.RoundedRectangleBorder(radius=6),
+                padding=ft.Padding(16, 0, 16, 0),
+                text_style=ft.TextStyle(size=12)),
             on_click=on_replace,
         ))
     if on_copy:
@@ -323,8 +342,8 @@ def _build_translation_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                svg_icon("language-exchange", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
-                ft.Text(f"Traduction ({direction})", size=13, weight=ft.FontWeight.W_600,
+                svg_icon("language-exchange", size=ICON_SM, color=c(T.L_ACCENT, T.D_ACCENT)),
+                ft.Text(f"Traduction ({direction})", size=13, weight=ft.FontWeight.W_700,
                         color=c(T.L_PRIMARY, T.D_PRIMARY)),
             ]),
             ft.Container(
@@ -342,6 +361,8 @@ def _build_translation_results(items, state, c, callbacks):
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_translation),
+        on_review=(lambda e: callbacks["review_inline"]())
+        if callbacks.get("review_inline") else None,
         on_copy=lambda e, t=copy_text: callbacks["copy_result"](e, t),
     ))
 
@@ -350,7 +371,7 @@ def _build_translation_results(items, state, c, callbacks):
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 16),
             content=ft.Column(spacing=6, controls=[
-                ft.Text("Notes de traduction", size=12, weight=ft.FontWeight.W_600,
+                ft.Text("Notes de traduction", size=12, weight=ft.FontWeight.W_700,
                         color=c(T.L_TERTIARY, T.D_TERTIARY)),
             ] + [
                 ft.Container(
@@ -390,8 +411,8 @@ def _build_reformulation_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                svg_icon(icon_name, size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
-                ft.Text(mode_label, size=13, weight=ft.FontWeight.W_600,
+                svg_icon(icon_name, size=ICON_SM, color=c(T.L_ACCENT, T.D_ACCENT)),
+                ft.Text(mode_label, size=13, weight=ft.FontWeight.W_700,
                         color=c(T.L_PRIMARY, T.D_PRIMARY)),
             ]),
             ft.Container(
@@ -409,6 +430,8 @@ def _build_reformulation_results(items, state, c, callbacks):
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_reformulation),
+        on_review=(lambda e: callbacks["review_inline"]())
+        if callbacks.get("review_inline") else None,
         on_copy=lambda e, t=copy_text: callbacks["copy_result"](e, t),
     ))
 
@@ -417,7 +440,7 @@ def _build_reformulation_results(items, state, c, callbacks):
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 16),
             content=ft.Column(spacing=6, controls=[
-                ft.Text("Changements effectues", size=12, weight=ft.FontWeight.W_600,
+                ft.Text("Changements effectues", size=12, weight=ft.FontWeight.W_700,
                         color=c(T.L_TERTIARY, T.D_TERTIARY)),
             ] + [
                 ft.Container(
@@ -456,8 +479,8 @@ def _build_summary_results(items, state, c, callbacks):
         padding=ft.Padding(16, 16, 16, 8),
         content=ft.Column(spacing=8, controls=[
             ft.Row(spacing=8, controls=[
-                svg_icon("rectangle-list", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
-                ft.Text("Resume", size=13, weight=ft.FontWeight.W_600,
+                svg_icon("rectangle-list", size=ICON_SM, color=c(T.L_ACCENT, T.D_ACCENT)),
+                ft.Text("Resume", size=13, weight=ft.FontWeight.W_700,
                         color=c(T.L_PRIMARY, T.D_PRIMARY), expand=True),
                 ft.Container(
                     padding=ft.Padding(8, 2, 8, 2), border_radius=10,
@@ -466,7 +489,7 @@ def _build_summary_results(items, state, c, callbacks):
                         f"Reduction : {state.ai_reduction}" if state.ai_reduction else "",
                         size=10, color=c(T.L_ACCENT, T.D_ACCENT)),
                 ) if state.ai_reduction else ft.Container(),
-                svg_icon_btn("clone", size=16, color=c(T.L_MUTED, T.D_MUTED),
+                svg_icon_btn("clone", size=ICON_SM, color=c(T.L_MUTED, T.D_MUTED),
                              tooltip="Copier le resume", padding=4,
                              on_click=lambda e: callbacks["copy_result"](e, f"Resume :\n{state.ai_summary}")),
             ]),
@@ -485,6 +508,8 @@ def _build_summary_results(items, state, c, callbacks):
     items.append(_action_buttons(
         c,
         on_replace=lambda e: callbacks["replace_with_result"](state.ai_summary),
+        on_review=(lambda e: callbacks["review_inline"]())
+        if callbacks.get("review_inline") else None,
         on_copy=lambda e, t=summary_copy: callbacks["copy_result"](e, t),
         replace_label="Remplacer par le resume",
     ))
@@ -498,9 +523,9 @@ def _build_summary_results(items, state, c, callbacks):
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        ft.Text("Points cles", size=12, weight=ft.FontWeight.W_600,
+                        ft.Text("Points cles", size=12, weight=ft.FontWeight.W_700,
                                 color=c(T.L_TERTIARY, T.D_TERTIARY)),
-                        svg_icon_btn("clone", size=16, color=c(T.L_MUTED, T.D_MUTED),
+                        svg_icon_btn("clone", size=ICON_SM, color=c(T.L_MUTED, T.D_MUTED),
                                      tooltip="Copier les points cles", padding=4,
                                      on_click=lambda e, t=kp_text: callbacks["copy_result"](e, t)),
                     ],
@@ -535,8 +560,8 @@ def _build_keywords_results(items, state, c, callbacks):
             padding=ft.Padding(16, 16, 16, 8),
             content=ft.Column(spacing=8, controls=[
                 ft.Row(spacing=8, controls=[
-                    svg_icon("bullseye", size=20, color=c(T.L_ACCENT, T.D_ACCENT)),
-                    ft.Text("Theme", size=13, weight=ft.FontWeight.W_600,
+                    svg_icon("bullseye", size=ICON_SM, color=c(T.L_ACCENT, T.D_ACCENT)),
+                    ft.Text("Theme", size=13, weight=ft.FontWeight.W_700,
                             color=c(T.L_PRIMARY, T.D_PRIMARY)),
                 ]),
                 ft.Container(
@@ -567,7 +592,7 @@ def _build_keywords_results(items, state, c, callbacks):
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 8),
             content=ft.Column(spacing=8, controls=[
-                ft.Text("Mots-cles principaux", size=12, weight=ft.FontWeight.W_600,
+                ft.Text("Mots-cles principaux", size=12, weight=ft.FontWeight.W_700,
                         color=c(T.L_TERTIARY, T.D_TERTIARY)),
                 ft.Row(spacing=6, wrap=True, controls=primary_chips),
             ]),
@@ -591,7 +616,7 @@ def _build_keywords_results(items, state, c, callbacks):
         items.append(ft.Container(
             padding=ft.Padding(16, 8, 16, 16),
             content=ft.Column(spacing=8, controls=[
-                ft.Text("Mots-cles secondaires", size=12, weight=ft.FontWeight.W_600,
+                ft.Text("Mots-cles secondaires", size=12, weight=ft.FontWeight.W_700,
                         color=c(T.L_TERTIARY, T.D_TERTIARY)),
                 ft.Row(spacing=6, wrap=True, controls=secondary_chips),
             ]),

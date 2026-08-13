@@ -1,227 +1,273 @@
 """
-controllers/autocomplete_controller.py -- Orchestration de l'autocompletion.
+controllers/autocomplete_controller.py -- Suggestion unique, en texte fantôme.
 
-Combine la completion locale (mots) et la prediction IA (phrases)
-pour proposer des suggestions fluides a l'utilisateur.
+Changement de modèle par rapport à la popup en liste : il n'y a plus qu'**une
+seule** proposition, affichée en gris dans le flux du texte. L'utilisateur
+n'a plus à quitter sa phrase des yeux, ni à viser avec les flèches.
+
+Deux sources alimentent cette suggestion, dans cet ordre :
+
+  1. **Le dictionnaire local** (trie construit sur le document) — instantané,
+     hors ligne, gratuit. Il complète le mot en cours de frappe.
+  2. **Le modèle de langage** — il propose la suite de la phrase, mais
+     seulement quand aucun mot n'est en cours et après une pause.
+
+La suggestion ne vit que dans la couche d'affichage : elle n'entre jamais
+dans le document tant qu'elle n'est pas acceptée.
 """
 
-import re
-import threading
+import flet as ft
 
-from models.word_completer import WordCompleter
 from models.ai_completer import AICompleter
-from ai_checker import OllamaManager
+from models.scheduler import scheduler
+from models.text_utils import word_before_cursor
+from models.word_completer import WordCompleter
+
+#: Sources possibles pour la suggestion courante.
+SOURCE_WORD = "word"
+SOURCE_AI = "ai"
+
+#: Cle d'ordonnancement de la reindexation du dictionnaire.
+_TRIE_TASK = "autocomplete.trie"
 
 
 class AutocompleteController:
-    """Orchestre les suggestions de mots et predictions IA."""
+    """Produit et applique la suggestion en texte fantôme."""
 
-    # Nombre minimum de caracteres pour declencher la completion
+    #: Nombre minimum de caractères avant de compléter un mot.
     MIN_PREFIX_LEN = 2
-    # Delai pour mettre a jour le trie (pas a chaque frappe)
+    #: Le dictionnaire est reconstruit au repos, jamais pendant la frappe.
     TRIE_UPDATE_DELAY = 2.0
+    #: Contexte envoyé au modèle pour la prédiction de phrase.
+    AI_CONTEXT_CHARS = 500
 
     def __init__(self, state, editor, cur_doc_fn, rebuild_fn, page,
-                 refresh_popup_fn=None):
+                 refresh_fn=None, llm_ready_fn=None, manager=None):
         self.state = state
         self.editor = editor
         self._cur_doc = cur_doc_fn
         self._rebuild = rebuild_fn
-        self._refresh_popup = refresh_popup_fn
+        #: Rafraîchit uniquement la couche d'affichage (pas d'arbre complet).
+        self._refresh = refresh_fn or rebuild_fn
         self._page = page
+        self._llm_ready = llm_ready_fn or (lambda: False)
 
-        # Composants
         self._word_completer = WordCompleter()
-        self._ai_completer = AICompleter()
+        self._ai_completer = AICompleter(manager)
         self._ai_completer.on_prediction = self._on_ai_prediction
 
-        # Timer pour mise a jour du trie
-        self._trie_timer: threading.Timer | None = None
+        self._cursor = 0
 
-    def on_text_changed(self):
-        """Appele apres chaque changement de texte dans l'editeur."""
+        #: Vrai le temps du traitement d'une frappe. L'appelant
+        #: (`EditorController`) enverra lui-même l'état au client juste après ;
+        #: le rappel de rafraîchissement peut donc se contenter de préparer la
+        #: couche d'affichage, sans déclencher un second envoi pour la même
+        #: touche. Lu par `AppController._refresh_ghost`.
+        self.typing = False
+
+    # ------------------------------------------------------------------
+    # Frappe
+    # ------------------------------------------------------------------
+    def on_text_changed(self, cursor: int | None = None):
         if not self.state.ac_enabled:
             return
+        self.typing = True
+        try:
+            self._on_text_changed(cursor)
+        finally:
+            self.typing = False
 
+    def _on_text_changed(self, cursor: int | None):
         d = self._cur_doc()
         if not d or not d.content:
             self.dismiss()
             return
 
-        # Extraire le mot en cours de saisie (avant le curseur)
         text = d.content
-        prefix = self._extract_current_word(text)
+        self._cursor = cursor if cursor is not None else len(text)
+        prefix = word_before_cursor(text, self._cursor)
 
-        if len(prefix) < self.MIN_PREFIX_LEN:
-            # Masquer les suggestions locales mais garder l'IA possible
-            self.state.ac_suggestions = []
-            self.state.ac_selected = 0
-            self.state.ac_prefix = ""
-            if not self.state.ac_ai_suggestion:
-                self.state.ac_visible = False
-            if self._refresh_popup:
-                self._refresh_popup()
-            # Lancer la prediction IA apres une pause
-            self._request_ai_prediction(text)
-            return
+        if len(prefix) >= self.MIN_PREFIX_LEN:
+            # Complétion locale : instantanée, elle prime sur le modèle.
+            candidates = self._word_completer.complete(prefix, max_results=1)
+            if candidates and candidates[0].startswith(prefix.lower()):
+                self._set_ghost(candidates[0][len(prefix):], SOURCE_WORD)
+                self._ai_completer.cancel()
+                self._schedule_trie_update(text)
+                return
 
-        self.state.ac_prefix = prefix
-
-        # Completion locale instantanee
-        suggestions = self._word_completer.complete(prefix)
-        self.state.ac_suggestions = suggestions
-
-        # Prediction IA en arriere-plan
+        # Aucun mot à compléter : on laisse le modèle proposer une suite.
+        self._clear_ghost()
         self._request_ai_prediction(text)
-
-        # Afficher la popup si on a des resultats
-        if suggestions or self.state.ac_ai_suggestion:
-            self.state.ac_visible = True
-            self.state.ac_selected = 0
-        else:
-            self.state.ac_visible = False
-
-        # Rafraichir juste la popup (leger, pas de rebuild complet)
-        if self._refresh_popup:
-            self._refresh_popup()
-
-        # Planifier la mise a jour du trie
         self._schedule_trie_update(text)
 
+    # ------------------------------------------------------------------
+    # Suggestion
+    # ------------------------------------------------------------------
+    def _set_ghost(self, suggestion: str, source: str):
+        suggestion = suggestion or ""
+        if (self.state.ac_ghost, self.state.ac_source) == (suggestion, source):
+            return
+        self.state.ac_ghost = suggestion
+        self.state.ac_source = source
+        self.state.ac_visible = bool(suggestion)
+        self._refresh()
+
+    def _clear_ghost(self):
+        if not self.state.ac_ghost:
+            self.state.ac_visible = False
+            return
+        self.state.ac_ghost = ""
+        self.state.ac_source = ""
+        self.state.ac_visible = False
+        self._refresh()
+
+    @property
+    def has_suggestion(self) -> bool:
+        return bool(self.state.ac_ghost)
+
+    # ------------------------------------------------------------------
+    # Prédiction par le modèle
+    # ------------------------------------------------------------------
     def _request_ai_prediction(self, text: str):
-        """Lance la prediction IA si Ollama est disponible."""
-        model_id = self.state.ai_selected_model
-        if not model_id:
+        if not self._llm_ready():
             return
-        if not OllamaManager.is_server_running():
+        upto = text[:self._cursor]
+        # Proposer une suite au milieu d'un mot n'a pas de sens.
+        if upto and not upto[-1].isspace() and word_before_cursor(text, self._cursor):
             return
-        self._ai_completer.request_completion(text, model_id)
+        context = upto[-self.AI_CONTEXT_CHARS:]
+        if not context.strip():
+            return
+        self._ai_completer.request_completion(context, self._cursor)
 
     def _on_ai_prediction(self, prediction: str):
-        """Callback appele quand l'IA retourne une prediction."""
-        if not self.state.ac_enabled:
+        """Appelé depuis le thread réseau."""
+        if not self.state.ac_enabled or not prediction:
             return
-        self.state.ac_ai_suggestion = prediction
-        if prediction and (self.state.ac_suggestions or self.state.ac_prefix):
-            self.state.ac_visible = True
-        # Rafraichir la popup depuis le thread principal
+
+        def apply():
+            # Le curseur a pu bouger pendant l'appel : on ne colle pas une
+            # suggestion périmée dans le texte de l'utilisateur.
+            d = self._cur_doc()
+            if not d:
+                return
+            if word_before_cursor(d.content, self._cursor):
+                return
+            self._set_ghost(prediction, SOURCE_AI)
+
         try:
-            if self._refresh_popup:
-                self._page.run_thread(self._do_refresh_popup)
+            self._page.run_thread(apply)
         except Exception:
             pass
 
-    def _do_refresh_popup(self):
-        """Callback thread-safe pour rafraichir la popup."""
-        if self._refresh_popup:
-            self._refresh_popup()
-        self._page.update()
-
-    def navigate(self, direction: int):
-        """Deplace la selection dans la popup (direction: +1 ou -1)."""
-        if not self.state.ac_visible:
-            return
-        total = len(self.state.ac_suggestions)
-        if self.state.ac_ai_suggestion:
-            total += 1
-        if total == 0:
-            return
-        self.state.ac_selected = (self.state.ac_selected + direction) % total
-
+    # ------------------------------------------------------------------
+    # Acceptation
+    # ------------------------------------------------------------------
     def accept(self) -> bool:
-        """Accepte la suggestion selectionnee. Retourne True si une action a ete faite."""
-        if not self.state.ac_visible:
+        """Tab — insère toute la suggestion."""
+        return self._insert(self.state.ac_ghost)
+
+    def accept_word(self) -> bool:
+        """Ctrl+→ — insère seulement le premier mot de la suggestion.
+
+        Permet de garder la main : on prend le début utile de la proposition
+        sans avaler une phrase entière qu'on n'aurait pas voulue.
+        """
+        ghost = self.state.ac_ghost
+        if not ghost:
             return False
 
+        # On coupe après le premier mot, séparateur inclus.
+        idx = 0
+        while idx < len(ghost) and ghost[idx].isspace():
+            idx += 1
+        while idx < len(ghost) and not ghost[idx].isspace():
+            idx += 1
+
+        chunk = ghost[:idx] or ghost
+        if not self._insert(chunk, keep_rest=ghost[idx:]):
+            return False
+        return True
+
+    def _insert(self, chunk: str, keep_rest: str = "") -> bool:
+        if not chunk:
+            return False
         d = self._cur_doc()
         if not d:
             return False
 
-        idx = self.state.ac_selected
         text = d.content
+        cursor = min(self._cursor, len(text))
+        new_text = text[:cursor] + chunk + text[cursor:]
+        new_cursor = cursor + len(chunk)
 
-        if idx < len(self.state.ac_suggestions):
-            # Accepter un mot
-            word = self.state.ac_suggestions[idx]
-            new_text = self._replace_current_word(text, word)
-        elif self.state.ac_ai_suggestion:
-            # Accepter la prediction IA
-            suggestion = self.state.ac_ai_suggestion
-            # Ajouter apres le texte courant (avec espace si necessaire)
-            if text and not text.endswith((" ", "\n")):
-                # Completer le mot en cours puis ajouter la prediction
-                prefix = self._extract_current_word(text)
-                if prefix:
-                    # Trouver si la prediction commence par la fin du prefix
-                    new_text = text + " " + suggestion
-                else:
-                    new_text = text + suggestion
-            else:
-                new_text = text + suggestion
-        else:
-            return False
-
-        # Appliquer
-        d.content = new_text
+        d.apply_change(new_text)
         d.modified = True
         self.editor.value = new_text
-        self._dismiss_silent()
-        self._ai_completer.clear_cache()
-        self._rebuild()
+        self._cursor = new_cursor
+
+        if keep_rest:
+            # Acceptation mot à mot : le reste de la proposition demeure.
+            self.state.ac_ghost = keep_rest
+            self.state.ac_visible = True
+        else:
+            self.state.ac_ghost = ""
+            self.state.ac_source = ""
+            self.state.ac_visible = False
+            self._ai_completer.cancel()
+
+        try:
+            self.editor.selection = ft.TextSelection(
+                base_offset=new_cursor, extent_offset=new_cursor)
+        except (AttributeError, TypeError):
+            pass
+
+        self.state.cursor = new_cursor
+        self._refresh()
+        self._page.run_task(self.editor.focus)
         return True
 
-    def _dismiss_silent(self):
-        """Reset l'etat sans declencher de rebuild."""
-        self.state.ac_visible = False
-        self.state.ac_suggestions = []
-        self.state.ac_ai_suggestion = ""
-        self.state.ac_selected = 0
-        self.state.ac_prefix = ""
-        self._ai_completer.cancel()
-
+    # ------------------------------------------------------------------
+    # Fermeture
+    # ------------------------------------------------------------------
     def dismiss(self):
-        """Ferme la popup d'autocompletion et rafraichit l'UI."""
-        was_visible = self.state.ac_visible
-        self._dismiss_silent()
-        if was_visible and self._refresh_popup:
-            self._refresh_popup()
+        """Échap — abandonne la suggestion courante."""
+        self._ai_completer.cancel()
+        self._clear_ghost()
 
+    # ------------------------------------------------------------------
+    # Dictionnaire local
+    # ------------------------------------------------------------------
     def _schedule_trie_update(self, text: str):
-        """Met a jour le trie avec debounce."""
-        if self._trie_timer:
-            self._trie_timer.cancel()
-        self._trie_timer = threading.Timer(
-            self.TRIE_UPDATE_DELAY,
-            self._word_completer.update_from_text, args=(text,),
-        )
-        self._trie_timer.daemon = True
-        self._trie_timer.start()
+        scheduler.schedule(_TRIE_TASK, self.TRIE_UPDATE_DELAY,
+                           lambda: self._word_completer.update_from_text(text))
 
     def update_trie_now(self, text: str):
-        """Force la mise a jour du trie (ex: ouverture de fichier)."""
+        """Réindexe immédiatement. Réservé aux tests et aux appels hors frappe."""
         if text:
             self._word_completer.update_from_text(text)
 
-    @staticmethod
-    def _extract_current_word(text: str) -> str:
-        """Extrait le mot en cours de saisie (dernier mot incomplet)."""
-        if not text:
-            return ""
-        # Si le texte finit par un espace ou newline, pas de mot en cours
-        if text[-1] in (" ", "\n", "\t"):
-            return ""
-        # Trouver le dernier mot
-        match = re.search(
-            r"[a-zA-ZàâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ'']+$", text,
-        )
-        return match.group(0) if match else ""
+    #: Délai de réindexation après un changement d'onglet. Court — la
+    #: suggestion doit connaître le vocabulaire du nouveau document presque
+    #: tout de suite — mais différé, ce qui est l'essentiel.
+    TRIE_SWITCH_DELAY = 0.2
 
-    @staticmethod
-    def _replace_current_word(text: str, replacement: str) -> str:
-        """Remplace le dernier mot du texte par le remplacement."""
-        match = re.search(
-            r"[a-zA-ZàâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ'']+$", text,
-        )
-        if match:
-            return text[:match.start()] + replacement
-        return text + replacement
+    def refresh_dictionary_soon(self, text: str):
+        """Réindexe le document **hors du thread d'interface**.
+
+        Le changement d'onglet appelait `update_trie_now`, qui parcourt tout
+        le document et reconstruit le trie sur place. Sur un fichier de
+        plusieurs centaines de milliers de caractères, cela figeait l'interface
+        à chaque bascule — exactement le ralentissement ressenti. L'indexation
+        n'a aucune raison d'être synchrone : tant qu'elle n'est pas finie, le
+        dictionnaire précédent reste utilisable.
+        """
+        if not text:
+            return
+        scheduler.schedule(_TRIE_TASK, self.TRIE_SWITCH_DELAY,
+                           lambda: self._word_completer.update_from_text(text))
+
+    def shutdown(self):
+        scheduler.cancel(_TRIE_TASK)
+        self._ai_completer.cancel()

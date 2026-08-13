@@ -4,6 +4,8 @@ views/dialogs/emoji_picker.py — Sélecteur visuel d'émojis.
 
 import flet as ft
 
+from constants import UI_FONT_STRONG
+
 from theme import T
 from my_emoji import EMOJI_DICT, EMOJI_CATEGORIES
 
@@ -88,7 +90,7 @@ def show_emoji_picker(page, c, callbacks):
         callbacks["insert_emoji"](ch)
 
     dlg = ft.AlertDialog(
-        title=ft.Text("Émojis", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Émojis", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(
             width=520, height=420,
             content=ft.Column(spacing=10, controls=[

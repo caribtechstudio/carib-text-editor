@@ -4,14 +4,14 @@ views/dialogs/info_dialog.py — Informations et crédits.
 
 import flet as ft
 
-from constants import APP_NAME, APP_VERSION
+from constants import APP_NAME, APP_VERSION, UI_FONT_STRONG
 from theme import T
 
 
 def show_info(page, c):
     """Affiche la boîte d'informations."""
     dlg = ft.AlertDialog(
-        title=ft.Text("Informations", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Informations", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Column(spacing=8, controls=[
             ft.Text(f"{APP_NAME} — v{APP_VERSION}", size=14, weight=ft.FontWeight.W_500),
             ft.Text("Éditeur de texte moderne avec IA locale.", size=13,
@@ -27,7 +27,7 @@ def show_info(page, c):
 def show_credits(page, c):
     """Affiche la boîte de crédits."""
     dlg = ft.AlertDialog(
-        title=ft.Text("Crédits", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Crédits", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(
             width=420,
             content=ft.Column(spacing=10, controls=[

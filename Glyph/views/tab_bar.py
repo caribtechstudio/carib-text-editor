@@ -4,7 +4,7 @@ views/tab_bar.py — Barre d'onglets des documents.
 
 import flet as ft
 
-from constants import svg_icon, svg_icon_btn
+from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT, UI_FONT_STRONG)
 from theme import T
 
 
@@ -27,12 +27,12 @@ def build_tab_bar(state, c, callbacks):
             ),
             ink=True,
             content=ft.Row(spacing=6, controls=[
-                svg_icon("document", size=17,
+                svg_icon("document", size=ICON_SM,
                          color=c(T.L_ACCENT, T.D_ACCENT) if active
                          else c(T.L_TERTIARY, T.D_TERTIARY)),
                 ft.Text(title, size=13,
-                        font_family="Nunito SemiBold" if active else "Nunito",
-                        weight=ft.FontWeight.W_600 if active else ft.FontWeight.W_400,
+                        font_family=UI_FONT_STRONG if active else UI_FONT,
+                        weight=ft.FontWeight.W_700 if active else ft.FontWeight.W_600,
                         color=c(T.L_PRIMARY, T.D_PRIMARY) if active
                         else c(T.L_TERTIARY, T.D_TERTIARY)),
                 ft.IconButton(
@@ -54,7 +54,7 @@ def build_tab_bar(state, c, callbacks):
                 ft.Row(spacing=0, scroll=ft.ScrollMode.AUTO, expand=True, controls=tabs),
                 ft.Container(
                     padding=ft.Padding(0, 0, 8, 0),
-                    content=svg_icon_btn("add", size=20,
+                    content=svg_icon_btn("add", size=ICON_SM,
                         color=c(T.L_TERTIARY, T.D_TERTIARY),
                         tooltip="Nouvel onglet", padding=6,
                         on_click=lambda e: callbacks["add_tab"]()),

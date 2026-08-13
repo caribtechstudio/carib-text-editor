@@ -4,7 +4,7 @@ views/dialogs/options_dialog.py — Boîte d'options / préférences.
 
 import flet as ft
 
-from constants import MODE_TEXT, MODE_CALC, MODE_READ, svg_icon
+from constants import (ICON_XS, ICON_SM, ICON_MD, MODE_TEXT, MODE_CALC, MODE_READ, svg_icon, UI_FONT_STRONG)
 from theme import T
 from views.dialogs._common import dlg_btn
 
@@ -18,7 +18,7 @@ def show_options(page, c, dark, callbacks):
         is_auto_save(), show_help(), show_info(), show_credits()
     """
     dlg = ft.AlertDialog(
-        title=ft.Text("Options", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Options", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(
             width=380,
             content=ft.Column(spacing=8, controls=[
@@ -38,7 +38,7 @@ def show_options(page, c, dark, callbacks):
                         controls=[
                             ft.Row(spacing=12, controls=[
                                 svg_icon("moon-stars" if dark() else "brightness",
-                                         size=22, color=c(T.L_ACCENT, T.D_ACCENT)),
+                                         size=ICON_MD, color=c(T.L_ACCENT, T.D_ACCENT)),
                                 ft.Text("Thème sombre" if dark() else "Thème clair",
                                         size=14, color=c(T.L_PRIMARY, T.D_PRIMARY)),
                             ]),
@@ -56,13 +56,37 @@ def show_options(page, c, dark, callbacks):
                         controls=[
                             ft.Row(spacing=12, controls=[
                                 svg_icon("disk",
-                                         size=22, color=c(T.L_ACCENT, T.D_ACCENT)),
+                                         size=ICON_MD, color=c(T.L_ACCENT, T.D_ACCENT)),
                                 ft.Text("Sauvegarde auto",
                                         size=14, color=c(T.L_PRIMARY, T.D_PRIMARY)),
                             ]),
                             ft.Switch(value=callbacks["is_auto_save"](),
                                       active_color=c(T.L_ACCENT, T.D_ACCENT),
                                       on_change=lambda e: (page.pop_dialog(), callbacks["toggle_auto_save"]())),
+                        ],
+                    ),
+                ),
+                # Toggle autocompletion
+                ft.Container(
+                    padding=ft.Padding(16, 12, 16, 12), border_radius=8,
+                    border=ft.Border.all(1, c(T.L_BORDER, T.D_BORDER)),
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Row(spacing=12, controls=[
+                                svg_icon("text",
+                                         size=ICON_MD, color=c(T.L_ACCENT, T.D_ACCENT)),
+                                ft.Column(spacing=1, tight=True, controls=[
+                                    ft.Text("Autocomplétion",
+                                            size=14, color=c(T.L_PRIMARY, T.D_PRIMARY)),
+                                    ft.Text("Suggestions de mots + prédiction IA",
+                                            size=11, color=c(T.L_MUTED, T.D_MUTED),
+                                            italic=True),
+                                ]),
+                            ]),
+                            ft.Switch(value=callbacks["is_autocomplete"](),
+                                      active_color=c(T.L_ACCENT, T.D_ACCENT),
+                                      on_change=lambda e: (page.pop_dialog(), callbacks["toggle_autocomplete"]())),
                         ],
                     ),
                 ),

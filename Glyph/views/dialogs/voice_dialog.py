@@ -4,6 +4,8 @@ views/dialogs/voice_dialog.py — Menu des fonctions vocales.
 
 import flet as ft
 
+from constants import UI_FONT_STRONG
+
 from theme import T
 from views.dialogs._common import dlg_btn
 
@@ -15,7 +17,7 @@ def show_voice_menu(page, c, callbacks):
     callbacks attendus : read_text(), voice_typing(), voice_ms()
     """
     dlg = ft.AlertDialog(
-        title=ft.Text("Fonctions vocales", size=16, font_family="Nunito SemiBold", weight=ft.FontWeight.W_600),
+        title=ft.Text("Fonctions vocales", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(
             width=360,
             content=ft.Column(spacing=8, controls=[

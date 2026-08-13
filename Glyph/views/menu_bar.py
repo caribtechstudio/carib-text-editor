@@ -4,7 +4,7 @@ views/menu_bar.py -- Barre d'outils d'edition flottante.
 
 import flet as ft
 
-from constants import svg_icon, svg_icon_btn
+from constants import ICON_BTN_PADDING, ICON_MD, svg_icon, svg_icon_btn
 from theme import T
 
 
@@ -23,12 +23,12 @@ def build_menu_bar(c, callbacks):
     ico_c = c(T.L_SECONDARY, T.D_SECONDARY)
 
     def tool_btn(tooltip, icon_name, on_click):
-        return svg_icon_btn(icon_name, size=20, color=ico_c,
-                            tooltip=tooltip, on_click=on_click, padding=6)
+        return svg_icon_btn(icon_name, size=ICON_MD, color=ico_c, tooltip=tooltip,
+                            on_click=on_click, padding=ICON_BTN_PADDING)
 
     def sep():
-        return ft.Container(width=1, height=20, bgcolor=c(T.L_BORDER, T.D_BORDER),
-                            margin=ft.Margin(4, 0, 4, 0))
+        return ft.Container(width=1, height=ICON_MD, bgcolor=c(T.L_BORDER, T.D_BORDER),
+                            margin=ft.Margin(6, 0, 6, 0))
 
     # --- Sous-menu Traduction ---
     def _translate_menu_item(label, on_click):
@@ -38,10 +38,10 @@ def build_menu_bar(c, callbacks):
         )
 
     translate_menu = ft.SubmenuButton(
-        content=svg_icon("language-exchange", size=20, color=ico_c),
+        content=svg_icon("language-exchange", size=ICON_MD, color=ico_c),
         style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=6),
-            padding=6,
+            shape=ft.RoundedRectangleBorder(radius=8),
+            padding=ICON_BTN_PADDING,
             overlay_color={ft.ControlState.HOVERED: c(T.L_HOVER, T.D_HOVER)},
         ),
         controls=[
@@ -54,10 +54,10 @@ def build_menu_bar(c, callbacks):
 
     # --- Sous-menu Reformulation ---
     reformulate_menu = ft.SubmenuButton(
-        content=svg_icon("sparkles", size=20, color=ico_c),
+        content=svg_icon("sparkles", size=ICON_MD, color=ico_c),
         style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=6),
-            padding=6,
+            shape=ft.RoundedRectangleBorder(radius=8),
+            padding=ICON_BTN_PADDING,
             overlay_color={ft.ControlState.HOVERED: c(T.L_HOVER, T.D_HOVER)},
         ),
         controls=[

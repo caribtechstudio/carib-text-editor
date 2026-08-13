@@ -5,8 +5,7 @@ Construit un dictionnaire a partir du texte du document en cours
 et propose des completions instantanees (< 5ms).
 """
 
-import re
-import unicodedata
+from models.text_utils import iter_words
 
 
 class _TrieNode:
@@ -57,54 +56,63 @@ class WordCompleter:
         " beaucoup trop assez peu tres"
     )
 
+    #: Au-dela de cette taille on n'indexe que le debut du document :
+    #: le cout d'indexation doit rester imperceptible meme sur un gros fichier.
+    MAX_INDEX_CHARS = 400_000
+
     def __init__(self):
         self._root = _TrieNode()
         self._word_set: set[str] = set()
-        # Amorcer avec les mots courants
+        #: Empreinte du dernier texte indexe — evite de tout refaire pour rien.
+        self._last_signature: tuple[int, int] | None = None
         for w in self._COMMON_FR.split():
             self._insert(w, freq=1)
 
     def _insert(self, word: str, freq: int = 1):
         node = self._root
         for ch in word.lower():
-            if ch not in node.children:
-                node.children[ch] = _TrieNode()
-            node = node.children[ch]
+            child = node.children.get(ch)
+            if child is None:
+                child = _TrieNode()
+                node.children[ch] = child
+            node = child
         node.is_word = True
         node.freq += freq
 
+    def _node_for(self, word: str) -> "_TrieNode | None":
+        node = self._root
+        for ch in word.lower():
+            node = node.children.get(ch)
+            if node is None:
+                return None
+        return node
+
     def update_from_text(self, text: str):
-        """Reconstruit le trie a partir du texte du document."""
-        words = re.findall(r"[a-zA-ZàâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ'']+", text)
-        new_words = set()
-        for w in words:
-            low = w.lower()
-            if len(low) >= 2:
-                new_words.add(low)
+        """Reindexe le document. Appele au repos, jamais pendant la frappe."""
+        if len(text) > self.MAX_INDEX_CHARS:
+            text = text[:self.MAX_INDEX_CHARS]
 
-        # Ajouter les nouveaux mots (incremental)
-        for w in new_words - self._word_set:
-            self._insert(w)
-        self._word_set = new_words
+        # Signature bon marche : meme longueur + meme hash = rien a faire.
+        signature = (len(text), hash(text))
+        if signature == self._last_signature:
+            return
+        self._last_signature = signature
 
-        # Re-compter les frequences depuis le texte
+        # Un seul passage : frequences et vocabulaire en meme temps.
         freq_map: dict[str, int] = {}
-        for w in words:
+        for w in iter_words(text):
             low = w.lower()
             if len(low) >= 2:
                 freq_map[low] = freq_map.get(low, 0) + 1
 
-        # Mettre a jour les frequences dans le trie
-        for w, f in freq_map.items():
-            node = self._root
-            for ch in w:
-                if ch in node.children:
-                    node = node.children[ch]
-                else:
-                    break
+        for word, freq in freq_map.items():
+            node = self._node_for(word)
+            if node is not None and node.is_word:
+                node.freq = freq
             else:
-                if node.is_word:
-                    node.freq = f
+                self._insert(word, freq=freq)
+
+        self._word_set = set(freq_map)
 
     def complete(self, prefix: str, max_results: int = 6) -> list[str]:
         """Retourne les completions triees par frequence decroissante."""

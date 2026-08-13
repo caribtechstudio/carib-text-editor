@@ -53,3 +53,41 @@ class T:
     D_TB_BORDER = "#334155"
     D_EDITOR    = "#0F172A"
     D_STATUS    = "#0F172A"
+
+    # ------------------------------------------------------------------
+    # Coloration syntaxique
+    #
+    # Teintes choisies pour rester lisibles sur les deux fonds sans jamais
+    # descendre sous un contraste de 4,5:1 : la couleur doit aider à lire,
+    # pas transformer le texte en sapin de Noël.
+    # ------------------------------------------------------------------
+    SYNTAX_LIGHT = {
+        "comment":  "#8B95A5",
+        "string":   "#0A7C4A",
+        "number":   "#B45309",
+        "keyword":  "#7C3AED",
+        "builtin":  "#0369A1",
+        "name":     "#1D4ED8",
+        "heading":  "#111827",
+        "emphasis": "#374151",
+        "link":     "#0369A1",
+        "punct":    "#6B7280",
+        "key":      "#B91C1C",
+    }
+    SYNTAX_DARK = {
+        "comment":  "#6B7A90",
+        "string":   "#4ADE80",
+        "number":   "#FBBF24",
+        "keyword":  "#C084FC",
+        "builtin":  "#38BDF8",
+        "name":     "#93C5FD",
+        "heading":  "#F8FAFC",
+        "emphasis": "#CBD5E1",
+        "link":     "#38BDF8",
+        "punct":    "#94A3B8",
+        "key":      "#FCA5A5",
+    }
+
+    #: Types de jeton rendus en gras / italique, quel que soit le thème.
+    SYNTAX_BOLD = frozenset({"heading", "keyword"})
+    SYNTAX_ITALIC = frozenset({"comment", "emphasis"})

@@ -1,6 +1,13 @@
+# --- Obligatoire ---
 flet>=0.84.0
-requests
-pyttsx3
-SpeechRecognition
-pyspellchecker
-pyautogui
+requests            # couche LLM (ChatGPT, Claude, Gemini, Ollama)
+
+# --- Optionnel : les fonctions concernées se désactivent proprement si absent ---
+pyspellchecker      # correction orthographique locale (F6)
+pyttsx3             # lecture à voix haute (F3)
+SpeechRecognition   # dictée Google (F4)
+# pyautogui        # retiré : la dictée Windows passe désormais par ctypes
+
+# --- Développement ---
+# pytest            # suite de tests : python -m pytest tests/
+# pyinstaller       # build : build.bat

@@ -4,14 +4,14 @@ views/dialogs/_common.py — Composants partagés entre dialogues.
 
 import flet as ft
 
-from constants import svg_icon
+from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon)
 from theme import T
 
 
 def dlg_btn(label, icon, c, on_click):
     """Bouton stylisé utilisé dans les dialogues."""
     if isinstance(icon, str):
-        icon_ctrl = svg_icon(icon, size=22, color=c(T.L_ACCENT, T.D_ACCENT))
+        icon_ctrl = svg_icon(icon, size=ICON_MD, color=c(T.L_ACCENT, T.D_ACCENT))
     else:
         icon_ctrl = ft.Icon(icon, size=22, color=c(T.L_ACCENT, T.D_ACCENT))
     return ft.Container(
