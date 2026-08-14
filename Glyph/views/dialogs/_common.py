@@ -4,8 +4,8 @@ views/dialogs/_common.py — Composants partagés entre dialogues.
 
 import flet as ft
 
-from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon)
-from theme import T
+from core.constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon)
+from core.theme import T
 
 
 def dlg_btn(label, icon, c, on_click):

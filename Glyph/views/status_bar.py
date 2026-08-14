@@ -10,9 +10,9 @@ acceptable dans un outil où l'on écrit des choses privées.
 
 import flet as ft
 
-from constants import UI_FONT
+from core.constants import UI_FONT
 
-from theme import T
+from core.theme import T
 
 
 def _sep(c):

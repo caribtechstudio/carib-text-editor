@@ -4,9 +4,9 @@ views/dialogs/rename_dialog.py — Dialogue de renommage de fichier.
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
-from theme import T
+from core.theme import T
 
 
 def show_rename_dialog(page, c, document, callbacks):

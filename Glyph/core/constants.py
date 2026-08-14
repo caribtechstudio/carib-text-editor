@@ -8,7 +8,7 @@ import sys
 import flet as ft
 
 APP_NAME = "Glyph"
-APP_VERSION = "0.13.1"
+APP_VERSION = "0.13.2"
 
 MODE_TEXT = "text"
 MODE_CALC = "calc"

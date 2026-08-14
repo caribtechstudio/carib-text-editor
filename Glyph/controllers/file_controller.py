@@ -9,10 +9,10 @@ Glyph avant de l'écraser.
 import os
 from datetime import datetime
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 from models.file_manager import (BinaryFileError, FileTooLargeError, load_file,
                                  rename_file_on_disk, write_file)
-from theme import T
+from core.theme import T
 from views.dialogs.rename_dialog import show_rename_dialog
 
 #: Extensions proposées à l'ouverture. Glyph n'était limité qu'au .txt, ce qui

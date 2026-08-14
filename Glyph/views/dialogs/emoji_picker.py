@@ -4,10 +4,10 @@ views/dialogs/emoji_picker.py — Sélecteur visuel d'émojis.
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
-from theme import T
-from my_emoji import EMOJI_DICT, EMOJI_CATEGORIES
+from core.theme import T
+from core.my_emoji import EMOJI_DICT, EMOJI_CATEGORIES
 
 
 def show_emoji_picker(page, c, callbacks):

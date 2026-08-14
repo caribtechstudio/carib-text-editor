@@ -4,8 +4,8 @@ views/search_bar.py — Barre de recherche/remplacement et surlignage des résul
 
 import flet as ft
 
-from constants import ICON_SM, svg_icon, svg_icon_btn, EDITOR_FONT, UI_FONT, UI_FONT_STRONG
-from theme import T
+from core.constants import ICON_SM, svg_icon, svg_icon_btn, EDITOR_FONT, UI_FONT, UI_FONT_STRONG
+from core.theme import T
 
 
 # ------------------------------------------------------------------

@@ -18,10 +18,10 @@ donc elle ne peut pas être enregistrée par accident.
 
 import flet as ft
 
-from constants import (EDITOR_FONT, UI_FONT,
+from core.constants import (EDITOR_FONT, UI_FONT,
                        UI_FONT_STRONG)
 
-from theme import T
+from core.theme import T
 
 
 def build_ghost_spans(text: str, cursor: int, suggestion: str, c, size: int,

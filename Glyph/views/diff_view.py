@@ -16,10 +16,10 @@ import difflib
 
 import flet as ft
 
-from constants import (EDITOR_FONT, UI_FONT,
+from core.constants import (EDITOR_FONT, UI_FONT,
                        UI_FONT_STRONG)
 
-from theme import T
+from core.theme import T
 
 #: Au-delà, on compare par mots plutôt que par caractères : un diff
 #: caractère par caractère sur un long texte est illisible et coûteux.

@@ -14,7 +14,7 @@ import pytest
 from models.document import Document
 from models.editor_state import EditorState
 from models.syntax import detect_language, highlight
-from theme import T
+from core.theme import T
 
 
 # ---------------------------------------------------------------------------

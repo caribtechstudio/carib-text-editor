@@ -2,7 +2,7 @@
 models/editor_state.py -- Etat global de l'editeur.
 """
 
-from constants import MODE_TEXT
+from core.constants import MODE_TEXT
 from models.search_state import SearchState
 
 

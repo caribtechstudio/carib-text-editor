@@ -4,9 +4,9 @@ views/editor_area.py — Création du widget éditeur de texte.
 
 import flet as ft
 
-from constants import EDITOR_FONT
+from core.constants import EDITOR_FONT
 
-from theme import T
+from core.theme import T
 
 
 def create_editor(c, hint_text, on_change, on_selection_change=None):

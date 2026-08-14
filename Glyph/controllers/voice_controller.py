@@ -3,7 +3,7 @@ controllers/voice_controller.py — Orchestration des fonctions vocales.
 """
 
 from models.voice_manager import sr_available, tts_available
-from theme import T
+from core.theme import T
 
 
 class VoiceController:

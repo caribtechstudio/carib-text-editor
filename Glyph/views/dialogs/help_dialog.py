@@ -4,9 +4,9 @@ views/dialogs/help_dialog.py — Aide et raccourcis clavier.
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
-from theme import T
+from core.theme import T
 
 #: (groupe, [(libellé, raccourci), …])
 SHORTCUTS = (

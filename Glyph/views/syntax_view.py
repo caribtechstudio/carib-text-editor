@@ -18,8 +18,8 @@ et signalée comme telle dans les options.
 
 import flet as ft
 
-from constants import EDITOR_FONT, UI_FONT, UI_FONT_STRONG
-from theme import T
+from core.constants import EDITOR_FONT, UI_FONT, UI_FONT_STRONG
+from core.theme import T
 
 
 def _token_style(kind: str, size: int, dark: bool) -> ft.TextStyle:

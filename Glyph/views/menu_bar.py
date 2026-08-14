@@ -4,8 +4,8 @@ views/menu_bar.py -- Barre d'outils d'edition flottante.
 
 import flet as ft
 
-from constants import ICON_BTN_PADDING, ICON_MD, svg_icon, svg_icon_btn
-from theme import T
+from core.constants import ICON_BTN_PADDING, ICON_MD, svg_icon, svg_icon_btn
+from core.theme import T
 
 
 def build_menu_bar(c, callbacks):

@@ -4,8 +4,8 @@ views/tab_bar.py — Barre d'onglets des documents.
 
 import flet as ft
 
-from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT, UI_FONT_STRONG)
-from theme import T
+from core.constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT, UI_FONT_STRONG)
+from core.theme import T
 
 
 def build_tab_bar(state, c, callbacks):

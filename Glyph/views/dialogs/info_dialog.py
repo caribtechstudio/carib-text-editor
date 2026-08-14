@@ -4,8 +4,8 @@ views/dialogs/info_dialog.py — Informations et crédits.
 
 import flet as ft
 
-from constants import APP_NAME, APP_VERSION, UI_FONT_STRONG
-from theme import T
+from core.constants import APP_NAME, APP_VERSION, UI_FONT_STRONG
+from core.theme import T
 
 
 def show_info(page, c):

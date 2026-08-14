@@ -12,8 +12,8 @@ librement, au lieu d'un menu à explorer.
 
 import flet as ft
 
-from constants import ICON_SM, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG
-from theme import T
+from core.constants import ICON_SM, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG
+from core.theme import T
 
 #: Actions proposées sous le champ. Le libellé est ce que voit l'utilisateur,
 #: la clé est le mode IA correspondant.

@@ -4,9 +4,9 @@ views/dialogs/voice_dialog.py — Menu des fonctions vocales.
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
-from theme import T
+from core.theme import T
 from views.dialogs._common import dlg_btn
 
 

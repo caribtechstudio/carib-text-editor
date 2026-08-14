@@ -12,10 +12,10 @@ contrôleurs. Les regrouper rend explicite ce qui relève de la présentation.
 
 import flet as ft
 
-from constants import MODE_READ, TOOLBAR_HEIGHT, EDITOR_FONT
+from core.constants import MODE_READ, TOOLBAR_HEIGHT, EDITOR_FONT
 from models.scheduler import scheduler
 from models.syntax import detect_language
-from theme import T
+from core.theme import T
 
 #: Taille de police de référence, à 100 % de zoom.
 BASE_TEXT_SIZE = 16

@@ -11,9 +11,9 @@ Affiche les resultats adaptes au mode actif :
 
 import flet as ft
 
-from constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT_STRONG)
-from theme import T
-from ai_prompts import MODE_LABELS
+from core.constants import (ICON_XS, ICON_SM, ICON_MD, svg_icon, svg_icon_btn, UI_FONT_STRONG)
+from core.theme import T
+from core.ai_prompts import MODE_LABELS
 
 
 def build_ai_panel(state, c, callbacks):

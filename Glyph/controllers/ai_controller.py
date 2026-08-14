@@ -14,12 +14,12 @@ Change majeur par rapport a la version precedente :
 
 import threading
 
-from ai_prompts import MODE_LABELS, PROMPTS, USER_INSTRUCTIONS
+from core.ai_prompts import MODE_LABELS, PROMPTS, USER_INSTRUCTIONS
 from models.llm.base import CancelledError, LLMError, Message
 from models.llm.client import CancelToken
 from models.llm.json_parse import extract_json
 from models.llm.schemas import schema_for, task_for
-from theme import T
+from core.theme import T
 
 
 class AIController:

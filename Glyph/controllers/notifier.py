@@ -31,7 +31,7 @@ import time
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
 from models.scheduler import scheduler
 
@@ -101,7 +101,7 @@ class Notifier:
     # Retrait
     # ------------------------------------------------------------------
     def _default_color(self):
-        from theme import T
+        from core.theme import T
         return self._c(T.L_PRIMARY, T.D_SURFACE)
 
     def _dismiss_current(self):

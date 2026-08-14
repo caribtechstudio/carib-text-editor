@@ -222,7 +222,7 @@ class SearchController:
         """Met à jour le widget compteur sans rebuild."""
         if not self.counter_ref:
             return
-        from theme import T
+        from core.theme import T
         s = self._search
         self.counter_ref.value = s.label
         if s.matches:

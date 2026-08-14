@@ -10,7 +10,7 @@ réinitialiser le contexte d'édition pour que le curseur, la sélection ou la
 base d'annulation d'un onglet se retrouvent appliqués à un autre.
 """
 
-from constants import MODE_READ
+from core.constants import MODE_READ
 from models.document import Document
 
 

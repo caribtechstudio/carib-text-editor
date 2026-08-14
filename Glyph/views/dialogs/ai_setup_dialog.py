@@ -19,11 +19,11 @@ import threading
 
 import flet as ft
 
-from constants import ICON_MD, ICON_SM, UI_FONT, UI_FONT_STRONG, svg_icon
+from core.constants import ICON_MD, ICON_SM, UI_FONT, UI_FONT_STRONG, svg_icon
 from models.llm.manager import (PROFILE_LABELS, PROFILES, TIER_BEST, TIER_FAST,
                                 TIER_STANDARD)
 from models.llm.registry import PROVIDER_ORDER, PROVIDERS
-from theme import T
+from core.theme import T
 
 _TIER_LABELS = {
     TIER_FAST: "Rapide (autocomplétion)",

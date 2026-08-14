@@ -4,8 +4,8 @@ views/dialogs/options_dialog.py — Boîte d'options / préférences.
 
 import flet as ft
 
-from constants import (ICON_XS, ICON_SM, ICON_MD, MODE_TEXT, MODE_CALC, MODE_READ, svg_icon, UI_FONT_STRONG)
-from theme import T
+from core.constants import (ICON_XS, ICON_SM, ICON_MD, MODE_TEXT, MODE_CALC, MODE_READ, svg_icon, UI_FONT_STRONG)
+from core.theme import T
 from views.dialogs._common import dlg_btn
 
 

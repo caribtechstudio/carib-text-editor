@@ -10,8 +10,8 @@ deviennent atteignables au clavier.
 
 import flet as ft
 
-from constants import ICON_SM, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG
-from theme import T
+from core.constants import ICON_SM, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG
+from core.theme import T
 
 MAX_VISIBLE = 9
 

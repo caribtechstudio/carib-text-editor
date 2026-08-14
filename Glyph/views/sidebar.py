@@ -5,9 +5,9 @@ views/sidebar.py — Barre latérale pliable (fichier + navigation).
 import os
 import flet as ft
 
-from constants import (APP_NAME, APP_VERSION, ICON_LG, ICON_MD, ICON_SM, ICON_XS,
+from core.constants import (APP_NAME, APP_VERSION, ICON_LG, ICON_MD, ICON_SM, ICON_XS,
                        resource_path, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG)
-from theme import T
+from core.theme import T
 
 
 def build_sidebar(state, c, callbacks):

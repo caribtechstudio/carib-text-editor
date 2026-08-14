@@ -23,7 +23,7 @@ import threading
 
 import flet as ft
 
-from constants import (APP_NAME, APP_VERSION, EDITOR_FONT, ICON_XS, MODE_READ,
+from core.constants import (APP_NAME, APP_VERSION, EDITOR_FONT, ICON_XS, MODE_READ,
                        TOOLBAR_HEIGHT, UI_FONT, UI_FONT_STRONG, resource_path,
                        svg_icon)
 from models.document import Document
@@ -36,8 +36,8 @@ from models.spell_checker import SpellCheckerWrapper
 from models.syntax import detect_language, highlight, language_label
 from models.text_utils import count_words, line_col_at_cursor
 from models.voice_manager import VoiceManager
-from phrase_random import PhrasePlaceHolder
-from theme import T
+from core.phrase_random import PhrasePlaceHolder
+from core.theme import T
 
 from views.ai_panel import build_ai_panel
 from views.command_bar import build_command_bar

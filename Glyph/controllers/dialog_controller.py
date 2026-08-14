@@ -14,10 +14,10 @@ import os
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
 from models import recovery
-from theme import T
+from core.theme import T
 
 
 class DialogController:

@@ -12,11 +12,11 @@ Deux principes gouvernent ce contrôleur :
 
 import flet as ft
 
-from constants import MODE_CALC
+from core.constants import MODE_CALC
 from models.calculator import eval_safe
 from models.scheduler import scheduler
 from models.text_utils import line_bounds_at_cursor, word_before_cursor
-from my_emoji import EMOJI_DICT
+from core.my_emoji import EMOJI_DICT
 
 AUTO_SAVE_DELAY = 3.0        # secondes après la dernière frappe
 UNDO_SNAPSHOT_DELAY = 0.5    # pause avant de figer une étape d'annulation

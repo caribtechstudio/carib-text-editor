@@ -11,9 +11,9 @@ fusionné avec la frappe qui le précédait.
 
 import flet as ft
 
-from constants import UI_FONT_STRONG
+from core.constants import UI_FONT_STRONG
 
-from theme import T
+from core.theme import T
 
 
 class ClipboardController:

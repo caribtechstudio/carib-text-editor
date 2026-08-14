@@ -165,7 +165,7 @@ class AIUXController:
         self._snack("Proposition écartée.")
 
     def _clear_diff(self):
-        from constants import MODE_READ
+        from core.constants import MODE_READ
         self.state.diff_active = False
         self.state.diff_original = ""
         self.state.diff_proposed = ""
