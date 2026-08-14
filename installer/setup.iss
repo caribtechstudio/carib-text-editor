@@ -5,7 +5,7 @@
 ; ============================================================
 
 #define AppName        "Glyph"
-#define AppVersion     "0.13.1"
+#define AppVersion     "0.13.2"
 #define AppPublisher   "Arnaud"
 #define AppExeName     "Glyph.exe"
 ; Dossier produit par PyInstaller en mode dossier (voir Glyph.spec).

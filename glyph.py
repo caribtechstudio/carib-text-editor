@@ -1,5 +1,5 @@
 """
-Glyph v0.13.1 — Éditeur de texte moderne
+Glyph v0.13.2 — Éditeur de texte moderne
 ======================================
 
 Fonctionnalités :

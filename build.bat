@@ -3,7 +3,7 @@ chcp 65001 > nul
 setlocal
 
 echo ============================================
-echo   Glyph v0.13.1 - Build Windows (mode dossier)
+echo   Glyph v0.13.2 - Build Windows (mode dossier)
 echo ============================================
 echo.
 

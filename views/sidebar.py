@@ -23,7 +23,7 @@ def build_sidebar(state, c, callbacks):
     def item(label, icon_name, key, on_click=None, tooltip_text=None):
         active = (state.sidebar_key == key)
         tip = tooltip_text or label
-        ico_color = c(T.L_ACCENT, T.D_ACCENT) if active else c(T.L_TERTIARY, T.D_TERTIARY)
+        ico_color = c(T.L_ACCENT, T.D_ACCENT) if active else c(T.L_PRIMARY, T.D_PRIMARY)
 
         if collapsed:
             return ft.Container(
@@ -67,7 +67,7 @@ def build_sidebar(state, c, callbacks):
     # ------------------------------------------------------------------
     def _recent_accordion():
         """Bouton accordéon — utilise les objets persistants passés via callbacks."""
-        ico_color = c(T.L_TERTIARY, T.D_TERTIARY)
+        ico_color = c(T.L_PRIMARY, T.D_PRIMARY)
 
         # Chevron persistant — sa propriété src est mise à jour directement par AppController
         chevron_widget = callbacks.get("recent_chevron") or svg_icon(
@@ -128,7 +128,7 @@ def build_sidebar(state, c, callbacks):
                 alignment=ft.Alignment(0, 0),
                 bgcolor=ft.Colors.TRANSPARENT,
                 tooltip="Ouvrir récent",
-                content=svg_icon("alarm-clock", size=ICON_MD, color=c(T.L_TERTIARY, T.D_TERTIARY)),
+                content=svg_icon("alarm-clock", size=ICON_MD, color=c(T.L_PRIMARY, T.D_PRIMARY)),
             ),
         )
 
@@ -142,7 +142,7 @@ def build_sidebar(state, c, callbacks):
         ink=True,
         on_click=lambda e: callbacks["toggle_sidebar"](),
         tooltip="Réduire le menu" if not collapsed else "Ouvrir le menu",
-        content=svg_icon(menu_icon, size=ICON_MD, color=c(T.L_SECONDARY, T.D_SECONDARY)),
+        content=svg_icon(menu_icon, size=ICON_MD, color=c(T.L_PRIMARY, T.D_PRIMARY)),
     )
 
     logo_img = ft.Image(src=resource_path("ressource/icon/icon.ico"),
