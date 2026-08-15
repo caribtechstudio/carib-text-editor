@@ -18,6 +18,7 @@ from core.constants import (
     UI_FONT, UI_FONT_STRONG, resource_path, svg_icon,
 )
 from core.theme import T
+from views.dialogs._common import modern_dialog, primary_button, secondary_button
 
 
 def _read_doc(filename: str) -> str:
@@ -54,20 +55,18 @@ def show_document(page, c, title: str, filename: str, *, intro: str = ""):
             except OSError:
                 pass
 
-    dlg = ft.AlertDialog(
-        title=ft.Text(title, size=16, font_family=UI_FONT_STRONG,
-                      weight=ft.FontWeight.W_700),
-        content=ft.Container(
+    content = ft.Container(
             width=620, height=460,
             content=ft.Column(spacing=10, scroll=ft.ScrollMode.AUTO,
                               controls=controls),
-        ),
-        actions=[
-            ft.TextButton("Ouvrir le dossier", on_click=open_folder),
-            ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog()),
-        ],
     )
-    page.show_dialog(dlg)
+    page.show_dialog(modern_dialog(
+        page, c, title, content, subtitle="Document fourni avec Carib",
+        actions=[
+            secondary_button("Ouvrir le dossier", c, open_folder, "folder-open"),
+            primary_button("Fermer", c, lambda e: page.pop_dialog()),
+        ],
+    ))
 
 
 def show_legal(page, c):
@@ -95,9 +94,7 @@ def show_eula(page, c):
 
 def show_info(page, c):
     """Affiche la boîte d'informations."""
-    dlg = ft.AlertDialog(
-        title=ft.Text("Informations", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=420, content=ft.Column(spacing=8, tight=True, controls=[
+    content = ft.Container(width=420, content=ft.Column(spacing=8, tight=True, controls=[
             ft.Text(f"{APP_FULL_NAME} — v{APP_VERSION}", size=14, weight=ft.FontWeight.W_500),
             ft.Text("Éditeur de texte moderne, avec IA locale ou en ligne, au choix.",
                     size=13, color=c(T.L_TERTIARY, T.D_TERTIARY)),
@@ -109,14 +106,15 @@ def show_info(page, c):
             ft.Text("© 2026 Arnaud. Binaire distribué selon les conditions "
                     "d'utilisation ; code source sous PolyForm Noncommercial 1.0.0.",
                     size=10, font_family=UI_FONT, color=c(T.L_MUTED, T.D_MUTED)),
-        ])),
+        ]))
+    page.show_dialog(modern_dialog(
+        page, c, "Informations", content, subtitle="À propos de l’application",
         actions=[
-            ft.TextButton("Conditions", on_click=lambda e: (page.pop_dialog(),
-                                                            show_eula(page, c))),
-            ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog()),
+            secondary_button("Conditions", c,
+                             lambda e: (page.pop_dialog(), show_eula(page, c))),
+            primary_button("Fermer", c, lambda e: page.pop_dialog()),
         ],
-    )
-    page.show_dialog(dlg)
+    ))
 
 
 def _link_row(c, label: str, url: str, *, shown: str = "") -> ft.Control:
@@ -139,9 +137,7 @@ def show_credits(page, c):
         return ft.Text(title, size=11, font_family=UI_FONT_STRONG,
                        color=c(T.L_TERTIARY, T.D_TERTIARY))
 
-    dlg = ft.AlertDialog(
-        title=ft.Text("Crédits", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(
+    content = ft.Container(
             width=460,
             content=ft.Column(spacing=10, tight=True, scroll=ft.ScrollMode.AUTO, controls=[
                 ft.Text("Développé par Arnaud", size=14, weight=ft.FontWeight.W_500,
@@ -181,11 +177,12 @@ def show_credits(page, c):
                         size=10, font_family=UI_FONT,
                         color=c(T.L_MUTED, T.D_MUTED)),
             ]),
-        ),
-        actions=[
-            ft.TextButton("Mentions légales",
-                          on_click=lambda e: (page.pop_dialog(), show_legal(page, c))),
-            ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog()),
-        ],
     )
-    page.show_dialog(dlg)
+    page.show_dialog(modern_dialog(
+        page, c, "Crédits", content, subtitle="Logiciels et ressources utilisés",
+        actions=[
+            secondary_button("Mentions légales", c,
+                             lambda e: (page.pop_dialog(), show_legal(page, c))),
+            primary_button("Fermer", c, lambda e: page.pop_dialog()),
+        ],
+    ))

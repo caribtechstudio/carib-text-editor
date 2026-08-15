@@ -13,6 +13,8 @@ from core.constants import (
 )
 from core.theme import T
 from models import user_data
+from views.dialogs._common import (danger_button, modern_dialog, primary_button,
+                                   secondary_button, section_label)
 
 
 def show_privacy_center(page, c, callbacks):
@@ -73,10 +75,7 @@ def show_privacy_center(page, c, callbacks):
         page.pop_dialog()
         _confirm_erase(page, c, on_done=callbacks["erased"])
 
-    dlg = ft.AlertDialog(
-        title=ft.Text("Confidentialité", size=16, font_family=UI_FONT_STRONG,
-                      weight=ft.FontWeight.W_700),
-        content=ft.Container(width=560, height=500, content=ft.Column(
+    content = ft.Container(width=560, height=500, content=ft.Column(
             spacing=16, scroll=ft.ScrollMode.AUTO, controls=[
                 ft.Text("Carib n'a pas de serveur, ne crée aucun compte et ne "
                         "collecte aucune donnée. Voici les seules exceptions, "
@@ -99,13 +98,16 @@ def show_privacy_center(page, c, callbacks):
                                       color=c(T.L_ERROR, T.D_ERROR))),
                 ]),
             ])),
+    page.show_dialog(modern_dialog(
+        page, c, "Confidentialité", content,
+        subtitle="Vos données, vos choix",
         actions=[
-            ft.TextButton("Politique complète",
-                          on_click=lambda e: (page.pop_dialog(),
-                                              callbacks["show_policy"]())),
-            ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog()),
-        ])
-    page.show_dialog(dlg)
+            secondary_button("Politique complète", c,
+                             lambda e: (page.pop_dialog(), callbacks["show_policy"]()),
+                             "shield-trust"),
+            primary_button("Fermer", c, lambda e: page.pop_dialog()),
+        ],
+    ))
 
 
 def _confirm_erase(page, c, on_done):
@@ -119,11 +121,7 @@ def _confirm_erase(page, c, on_done):
         page.pop_dialog()
         on_done(removed, errors)
 
-    page.show_dialog(ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Effacer mes données locales ?", size=16,
-                      font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=460, content=ft.Column(
+    content = ft.Container(width=460, content=ft.Column(
             spacing=12, tight=True, controls=[
                 ft.Text("Seront supprimés : la session enregistrée, la liste "
                         "des fichiers récents, les réglages, le journal de "
@@ -139,13 +137,15 @@ def _confirm_erase(page, c, on_done):
                             color=c(T.L_WARNING, T.D_WARNING)),
                 ]),
                 keep_keys,
-            ])),
+            ]))
+    page.show_dialog(modern_dialog(
+        page, c, "Effacer mes données locales ?", content,
+        subtitle="Cette action est irréversible", modal=True,
         actions=[
-            ft.TextButton("Annuler", on_click=lambda e: page.pop_dialog()),
-            ft.Button("Effacer", bgcolor=c(T.L_ERROR, T.D_ERROR),
-                      color="#FFFFFF", on_click=erase),
+            secondary_button("Annuler", c, lambda e: page.pop_dialog()),
+            danger_button("Effacer", c, erase, "trash-xmark"),
         ],
-        actions_alignment=ft.MainAxisAlignment.END))
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +153,7 @@ def _confirm_erase(page, c, on_done):
 # ---------------------------------------------------------------------------
 
 def _section(c, title):
-    return ft.Text(title, size=11, font_family=UI_FONT_STRONG,
-                   color=c(T.L_TERTIARY, T.D_TERTIARY))
+    return section_label(title, c)
 
 
 def _row(c, icon, title, subtitle, trailing):

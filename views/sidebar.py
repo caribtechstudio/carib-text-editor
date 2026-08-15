@@ -5,8 +5,9 @@ views/sidebar.py — Barre latérale pliable (fichier + navigation).
 import os
 import flet as ft
 
-from core.constants import (APP_NAME, APP_VERSION, ICON_LG, ICON_MD, ICON_SM, ICON_XS,
-                       resource_path, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG)
+from core.constants import (ICON_MD, ICON_SM, ICON_XS, RADIUS_MD, TEXT_CAPTION,
+                            TEXT_UI, MOTION_FAST, hover_effect, svg_icon,
+                            UI_FONT, UI_FONT_STRONG)
 from core.theme import T
 
 
@@ -24,27 +25,39 @@ def build_sidebar(state, c, callbacks):
         active = (state.sidebar_key == key)
         tip = tooltip_text or label
         ico_color = c(T.L_ACCENT, T.D_ACCENT) if active else c(T.L_PRIMARY, T.D_PRIMARY)
+        idle_bg = c(T.L_SELECTED, T.D_SELECTED) if active else ft.Colors.TRANSPARENT
+        hover_bg = c(T.L_SELECTED, T.D_SELECTED) if active else c(T.L_HOVER, T.D_HOVER)
 
         if collapsed:
             return ft.Container(
-                width=40, height=40, border_radius=8,
-                bgcolor=c(T.L_SELECTED, T.D_SELECTED) if active else ft.Colors.TRANSPARENT,
+                width=36, height=36, border_radius=RADIUS_MD,
+                bgcolor=idle_bg,
                 alignment=ft.Alignment(0, 0),
                 ink=True, on_click=on_click,
+                scale=ft.Scale(scale=1.0),
+                animate=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+                animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+                on_hover=hover_effect(idle_bg, hover_bg, scale=1.04,
+                                      hover_opacity=1.0),
                 tooltip=tip,
                 content=svg_icon(icon_name, size=ICON_MD, color=ico_color),
             )
 
         return ft.Container(
-            padding=ft.Padding(12, 10, 12, 10), border_radius=8,
-            bgcolor=c(T.L_SELECTED, T.D_SELECTED) if active else ft.Colors.TRANSPARENT,
+            height=38, padding=ft.Padding(10, 0, 10, 0), border_radius=RADIUS_MD,
+            bgcolor=idle_bg,
             ink=True, on_click=on_click,
+            scale=ft.Scale(scale=1.0),
+            animate=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+            animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+            on_hover=hover_effect(idle_bg, hover_bg, scale=1.01,
+                                  hover_opacity=1.0),
             tooltip=tip,
-            content=ft.Row(spacing=12, controls=[
+            content=ft.Row(spacing=11, controls=[
                 svg_icon(icon_name, size=ICON_MD, color=ico_color),
-                ft.Text(label, size=13, expand=True,
+                ft.Text(label, size=13.5, expand=True,
                         font_family=UI_FONT_STRONG if active else UI_FONT,
-                        weight=ft.FontWeight.W_700 if active else ft.FontWeight.W_600,
+                        weight=ft.FontWeight.W_700 if active else ft.FontWeight.W_500,
                         color=c(T.L_PRIMARY, T.D_PRIMARY) if active else c(T.L_SECONDARY, T.D_SECONDARY)),
             ]),
         )
@@ -76,15 +89,19 @@ def build_sidebar(state, c, callbacks):
         )
 
         header_btn = ft.Container(
-            padding=ft.Padding(12, 10, 12, 10),
-            border_radius=8,
+            height=38, padding=ft.Padding(10, 0, 10, 0),
+            border_radius=RADIUS_MD,
             bgcolor=ft.Colors.TRANSPARENT,
             ink=True,
+            animate=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+            on_hover=hover_effect(ft.Colors.TRANSPARENT,
+                                  c(T.L_HOVER, T.D_HOVER),
+                                  scale=1.0, hover_opacity=1.0),
             tooltip="Ouvrir récent",
             on_click=lambda e: toggle_recent_fn() if toggle_recent_fn else None,
-            content=ft.Row(spacing=12, controls=[
+            content=ft.Row(spacing=11, controls=[
                 svg_icon("alarm-clock", size=ICON_MD, color=ico_color),
-                ft.Text("Ouvrir récent", size=13, expand=True,
+                ft.Text("Ouvrir récent", size=13.5, expand=True,
                         font_family=UI_FONT,
                         color=c(T.L_SECONDARY, T.D_SECONDARY)),
                 chevron_widget,
@@ -124,7 +141,7 @@ def build_sidebar(state, c, callbacks):
             tooltip="",
             items=popup_items,
             content=ft.Container(
-                width=40, height=40, border_radius=8,
+                width=36, height=36, border_radius=RADIUS_MD,
                 alignment=ft.Alignment(0, 0),
                 bgcolor=ft.Colors.TRANSPARENT,
                 tooltip="Ouvrir récent",
@@ -137,33 +154,33 @@ def build_sidebar(state, c, callbacks):
     # ------------------------------------------------------------------
     menu_icon = "angle-double-small-left" if not collapsed else "menu-burger"
     menu_btn = ft.Container(
-        width=40, height=40, border_radius=8,
+        width=28, height=28, border_radius=8,
         alignment=ft.Alignment(0, 0),
         ink=True,
         on_click=lambda e: callbacks["toggle_sidebar"](),
+        scale=ft.Scale(scale=1.0),
+        animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        animate_opacity=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        on_hover=hover_effect(scale=1.08, hover_opacity=0.72),
         tooltip="Réduire le menu" if not collapsed else "Ouvrir le menu",
         content=svg_icon(menu_icon, size=ICON_MD, color=c(T.L_PRIMARY, T.D_PRIMARY)),
     )
-
-    logo_img = ft.Image(src=resource_path("ressource/icon/icon.ico"),
-                        width=ICON_LG, height=ICON_LG)
 
     if collapsed:
         header = ft.Row(controls=[menu_btn], alignment=ft.MainAxisAlignment.CENTER)
     else:
         header = ft.Container(
-            padding=ft.Padding(0, 0, 0, 8),
+            height=40, padding=ft.Padding(6, 0, 2, 10),
             content=ft.Row(
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    logo_img,
-                    ft.Column(spacing=0, expand=True, controls=[
-                        ft.Text(APP_NAME, size=14, weight=ft.FontWeight.W_700,
-                                font_family=UI_FONT_STRONG,
-                                color=c(T.L_PRIMARY, T.D_PRIMARY)),
-                        ft.Text(f"v{APP_VERSION}", size=10, color=c(T.L_MUTED, T.D_MUTED)),
-                    ]),
+                    ft.Text("FICHIER", expand=True,
+                            style=ft.TextStyle(size=TEXT_CAPTION,
+                                               font_family=UI_FONT_STRONG,
+                                               weight=ft.FontWeight.W_700,
+                                               letter_spacing=0.9,
+                                               color=c(T.L_MUTED, T.D_MUTED))),
                     menu_btn,
                 ],
             ),
@@ -175,7 +192,7 @@ def build_sidebar(state, c, callbacks):
     recent_widget = _recent_popup() if collapsed else _recent_accordion()
 
     nav_items = ft.Column(
-        spacing=2,
+        spacing=1,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER if collapsed else ft.CrossAxisAlignment.START,
         controls=[
             item("Ouvrir", "folder-open", "open",
@@ -186,6 +203,7 @@ def build_sidebar(state, c, callbacks):
             recent_widget,
             item("Nouveau", "add-document", "new",
                  on_click=lambda e: callbacks["add_tab"](), tooltip_text="Nouveau  Ctrl+N"),
+            separator(),
             item("Enregistrer", "disk", "save",
                  on_click=callbacks["save_file"], tooltip_text="Enregistrer  Ctrl+S"),
             item("Enregistrer sous", "floppy-disk-pen", "saveas",
@@ -200,6 +218,27 @@ def build_sidebar(state, c, callbacks):
     # ------------------------------------------------------------------
     # Bottom items
     # ------------------------------------------------------------------
+    ai_card = None if collapsed else ft.Container(
+        margin=ft.Margin(4, 0, 4, 8), padding=ft.Padding(12, 11, 12, 11),
+        border_radius=12, ink=True, bgcolor=c(T.L_ACCENT_LT, T.D_ACCENT_LT),
+        tooltip="Ouvrir l’assistant IA  Ctrl+K",
+        on_click=lambda e: callbacks["open_command_bar"](),
+        scale=ft.Scale(scale=1.0),
+        animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        animate_opacity=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        on_hover=hover_effect(scale=1.015, hover_opacity=0.90),
+        content=ft.Column(spacing=4, controls=[
+            ft.Row(spacing=7, controls=[
+                svg_icon("sparkles", size=ICON_SM, color=c(T.L_ACCENT, T.D_ACCENT)),
+                ft.Text("Assistant IA", size=12, font_family=UI_FONT_STRONG,
+                        weight=ft.FontWeight.W_700, color=c(T.L_ACCENT, T.D_ACCENT)),
+            ]),
+            ft.Text("Corriger, traduire, réécrire", size=11.5,
+                    font_family=UI_FONT, color=c(T.L_SECONDARY, T.D_SECONDARY),
+                    overflow=ft.TextOverflow.ELLIPSIS),
+        ]),
+    )
+
     bottom_items = ft.Column(
         spacing=2,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER if collapsed else ft.CrossAxisAlignment.START,
@@ -229,16 +268,15 @@ def build_sidebar(state, c, callbacks):
     controls.extend(middle)
     if spacer is not None:
         controls.append(spacer)
-    controls.extend([separator(), bottom_items])
+    if ai_card is not None:
+        controls.append(ai_card)
+    controls.extend([bottom_items])
 
     return ft.Container(
         expand=True,
         bgcolor=c(T.L_SIDEBAR, T.D_SIDEBAR),
         border=ft.Border.only(right=ft.BorderSide(1, c(T.L_BORDER, T.D_BORDER))),
-        shadow=ft.BoxShadow(spread_radius=0, blur_radius=12,
-                            color=ft.Colors.with_opacity(0.04, ft.Colors.BLACK),
-                            offset=ft.Offset(2, 0)),
-        padding=ft.Padding(8, 16, 8, 12) if collapsed else ft.Padding(12, 16, 12, 12),
+        padding=ft.Padding(8, 14, 8, 10) if collapsed else ft.Padding(12, 14, 12, 10),
         content=ft.Column(
             expand=True, spacing=0,
             horizontal_alignment=(ft.CrossAxisAlignment.CENTER if collapsed

@@ -10,7 +10,7 @@ acceptable dans un outil où l'on écrit des choses privées.
 
 import flet as ft
 
-from core.constants import UI_FONT
+from core.constants import MOTION_FAST, UI_FONT, hover_effect
 
 from core.theme import T
 
@@ -28,7 +28,13 @@ def build_status_bar(c, st_mode, st_msg, st_chars, st_words, st_zoom=None,
         st_encoding: widget « UTF-8 · CRLF ».
         ai_badge: contrôle cliquable indiquant le moteur IA et le coût.
     """
-    left = [st_mode, st_msg]
+    left = [
+        ft.Container(
+            height=22, padding=ft.Padding(9, 0, 9, 0), border_radius=6,
+            alignment=ft.Alignment(0, 0),
+            bgcolor=c(T.L_ACCENT_LT, T.D_ACCENT_LT), content=st_mode),
+        st_msg,
+    ]
 
     right: list[ft.Control] = []
     if st_pos is not None:
@@ -46,14 +52,14 @@ def build_status_bar(c, st_mode, st_msg, st_chars, st_words, st_zoom=None,
         right.append(ai_badge)
 
     return ft.Container(
-        height=36, bgcolor=c(T.L_STATUS, T.D_STATUS),
+        height=38, bgcolor=c(T.L_STATUS, T.D_STATUS),
         border=ft.Border.only(top=ft.BorderSide(1, c(T.L_BORDER, T.D_BORDER))),
-        padding=ft.Padding(20, 0, 12, 0),
+        padding=ft.Padding(16, 0, 12, 0),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Row(spacing=16, controls=left),
+                ft.Row(spacing=14, controls=left),
                 ft.Row(spacing=12, controls=right),
             ],
         ),
@@ -73,8 +79,15 @@ def build_ai_badge(c, label: str, is_local: bool, warning: bool, on_click):
         padding=ft.Padding(8, 3, 8, 3), border_radius=6, ink=True,
         on_click=lambda e: on_click(),
         tooltip="Configurer l'intelligence artificielle",
+        bgcolor=ft.Colors.TRANSPARENT,
+        scale=ft.Scale(scale=1.0),
+        animate=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        on_hover=hover_effect(ft.Colors.TRANSPARENT,
+                              c(T.L_HOVER, T.D_HOVER),
+                              scale=1.015, hover_opacity=1.0),
         content=ft.Row(spacing=6, tight=True, controls=[
             ft.Container(width=6, height=6, border_radius=3, bgcolor=color),
-            ft.Text(label, size=12, font_family=UI_FONT, color=color),
+            ft.Text(label, size=11.5, font_family=UI_FONT, color=color),
         ]),
     )

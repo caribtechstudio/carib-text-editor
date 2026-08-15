@@ -9,11 +9,11 @@ Carib avant de l'écraser.
 import os
 from datetime import datetime
 
-from core.constants import UI_FONT_STRONG
 from models.file_manager import (BinaryFileError, FileTooLargeError, load_file,
                                  rename_file_on_disk, write_file)
 from core.theme import T
 from views.dialogs.rename_dialog import show_rename_dialog
+from views.dialogs._common import modern_dialog, primary_button, secondary_button
 
 #: Extensions proposées à l'ouverture. Carib n'était limité qu'au .txt, ce qui
 #: le rendait inutilisable pour des notes Markdown, des journaux ou du JSON.
@@ -178,22 +178,19 @@ class FileController:
             self._rebuild()
             self._snack("Fichier rechargé depuis le disque.")
 
-        dlg = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Le fichier a changé sur le disque", size=16,
-                          font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-            content=ft.Text(
+        content = ft.Container(width=470, content=ft.Text(
                 f"« {d.title} » a été modifié par un autre programme depuis "
                 "son ouverture.\n\nÉcraser remplacera ces changements par "
                 "votre version. Recharger abandonnera vos modifications.",
-                size=14, color=c(T.L_SECONDARY, T.D_SECONDARY)),
+                size=14, color=c(T.L_SECONDARY, T.D_SECONDARY)))
+        dlg = modern_dialog(
+            self._page, c, "Le fichier a changé sur le disque", content,
+            subtitle="Choisissez la version à conserver", modal=True,
             actions=[
-                ft.TextButton("Annuler", on_click=lambda e: self._page.pop_dialog()),
+                secondary_button("Annuler", c, lambda e: self._page.pop_dialog()),
                 ft.TextButton("Recharger du disque", on_click=reload_from_disk),
-                ft.Button("Écraser", bgcolor=c(T.L_WARNING, T.D_WARNING),
-                          color="#FFFFFF", on_click=overwrite),
+                primary_button("Écraser", c, overwrite, "disk"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END,
         )
         self._page.show_dialog(dlg)
 

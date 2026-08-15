@@ -4,10 +4,10 @@ views/dialogs/voice_dialog.py — Menu des fonctions vocales.
 
 import flet as ft
 
-from core.constants import ICON_SM, UI_FONT_STRONG, svg_icon
+from core.constants import ICON_SM, UI_FONT, svg_icon
 
 from core.theme import T
-from views.dialogs._common import dlg_btn
+from views.dialogs._common import dlg_btn, modern_dialog, primary_button
 
 
 def show_voice_menu(page, c, callbacks):
@@ -16,9 +16,7 @@ def show_voice_menu(page, c, callbacks):
 
     callbacks attendus : read_text(), dictation()
     """
-    dlg = ft.AlertDialog(
-        title=ft.Text("Fonctions vocales", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(
+    content = ft.Container(
             width=360,
             content=ft.Column(spacing=8, controls=[
                 dlg_btn("Lire le texte (F3)", "headphones", c,
@@ -31,10 +29,13 @@ def show_voice_menu(page, c, callbacks):
                     ft.Text(
                         "Lecture et dictée s'exécutent sur votre ordinateur. "
                         "Carib n'accède pas au microphone et n'envoie aucun son.",
-                        size=10, expand=True, color=c(T.L_MUTED, T.D_MUTED)),
+                        size=11, expand=True, font_family=UI_FONT,
+                        color=c(T.L_MUTED, T.D_MUTED)),
                 ]),
             ]),
-        ),
-        actions=[ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog())],
     )
-    page.show_dialog(dlg)
+    page.show_dialog(modern_dialog(
+        page, c, "Fonctions vocales", content,
+        subtitle="Lecture et dictée sur votre ordinateur",
+        actions=[primary_button("Fermer", c, lambda e: page.pop_dialog())],
+    ))

@@ -1,115 +1,131 @@
-"""
-views/dialogs/help_dialog.py — Aide et raccourcis clavier.
-"""
+"""Aide filtrable et raccourcis clavier en deux colonnes."""
 
 import flet as ft
 
-from core.constants import UI_FONT_STRONG
-
+from core.constants import (APP_VERSION, TEXT_CAPTION, TEXT_META, TEXT_UI,
+                            UI_FONT, UI_FONT_STRONG)
 from core.theme import T
+from views.dialogs._common import modern_dialog, primary_button
 
-#: (groupe, [(libellé, raccourci), …])
+
 SHORTCUTS = (
     ("Essentiel", [
-        ("Palette de commandes — toutes les actions", "Ctrl+Maj+P"),
-        ("Demander à l'IA (prompt libre)", "Ctrl+K"),
+        ("Palette de commandes", "Ctrl+Maj+P"),
+        ("Demander à l'IA", "Ctrl+K"),
         ("Rechercher", "Ctrl+F"),
         ("Rechercher et remplacer", "Ctrl+H"),
         ("Aller à la ligne", "Ctrl+G"),
     ]),
     ("Fichier", [
-        ("Nouveau", "Ctrl+N"),
-        ("Ouvrir", "Ctrl+O"),
-        ("Enregistrer", "Ctrl+S"),
-        ("Enregistrer sous", "Ctrl+Maj+S"),
-        ("Imprimer", "Ctrl+P"),
-        ("Quitter", "Alt+F4"),
+        ("Nouveau", "Ctrl+N"), ("Ouvrir", "Ctrl+O"),
+        ("Enregistrer", "Ctrl+S"), ("Enregistrer sous", "Ctrl+Maj+S"),
+        ("Imprimer", "Ctrl+P"), ("Quitter", "Alt+F4"),
     ]),
     ("Onglets", [
-        ("Fermer l'onglet", "Ctrl+W"),
-        ("Onglet suivant", "Ctrl+Tab"),
+        ("Fermer l'onglet", "Ctrl+W"), ("Onglet suivant", "Ctrl+Tab"),
         ("Onglet précédent", "Ctrl+Maj+Tab"),
     ]),
     ("Édition", [
-        ("Annuler", "Ctrl+Z"),
-        ("Rétablir", "Ctrl+Y"),
-        ("Insérer un emoji", "Ctrl+E"),
-        ("Accepter la suggestion", "Tab"),
-        ("Fermer la surcouche courante", "Échap"),
+        ("Annuler", "Ctrl+Z"), ("Rétablir", "Ctrl+Y"),
+        ("Insérer un emoji", "Ctrl+E"), ("Accepter la suggestion", "Tab"),
+        ("Fermer la surcouche", "Échap"),
     ]),
     ("Intelligence artificielle", [
-        ("Correction", "F7"),
-        ("Traduction FR → EN", "F8"),
-        ("Reformulation", "F9"),
-        ("Accepter la modification proposée", "Tab"),
-        ("Refuser la modification proposée", "Échap"),
+        ("Correction", "F7"), ("Traduction FR → EN", "F8"),
+        ("Reformulation", "F9"), ("Accepter la modification", "Tab"),
+        ("Refuser la modification", "Échap"),
     ]),
     ("Affichage", [
-        ("Barre d'outils", "Ctrl+T"),
-        ("Zoom avant / arrière", "Ctrl + molette"),
-        ("Zoom 100 %", "Ctrl+0"),
-        ("Mode Texte / Calcul / Lecture", "Ctrl+1 / 2 / 3"),
+        ("Barre d'outils", "Ctrl+T"), ("Zoom avant / arrière", "Ctrl+molette"),
+        ("Zoom 100 %", "Ctrl+0"), ("Modes Texte / Calcul / Lecture", "Ctrl+1/2/3"),
     ]),
     ("Outils", [
-        ("Aide", "F1"),
-        ("Lire le texte à voix haute", "F3"),
-        ("Dictée vocale (Windows)", "F4"),
-        ("Orthographe (local)", "F6"),
+        ("Aide", "F1"), ("Lire le texte", "F3"),
+        ("Dictée vocale", "F4"), ("Orthographe locale", "F6"),
     ]),
 )
 
 
 def show_help(page, c):
-    """Affiche la boîte d'aide avec les raccourcis clavier."""
+    left = ft.Column(spacing=10, expand=True, scroll=ft.ScrollMode.AUTO)
+    right = ft.Column(spacing=10, expand=True, scroll=ft.ScrollMode.AUTO)
 
-    def row(label, key):
+    def keycap(label):
         return ft.Container(
-            padding=ft.Padding(8, 5, 8, 5),
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                controls=[
-                    ft.Text(label, size=13, expand=True,
+            height=22, padding=ft.Padding(6, 0, 6, 0), border_radius=6,
+            alignment=ft.Alignment(0, 0), bgcolor=c(T.L_EDITOR, T.D_EDITOR),
+            border=ft.Border.all(1, c(T.L_BORDER, T.D_BORDER)),
+            content=ft.Text(label, size=10.5, font_family=UI_FONT_STRONG,
                             color=c(T.L_SECONDARY, T.D_SECONDARY)),
-                    ft.Container(
-                        padding=ft.Padding(10, 4, 10, 4), border_radius=6,
-                        bgcolor=c(T.L_HOVER, T.D_HOVER),
-                        content=ft.Text(key, size=12, weight=ft.FontWeight.W_500,
-                                        font_family=UI_FONT_STRONG,
-                                        color=c(T.L_TERTIARY, T.D_TERTIARY)),
-                    ),
-                ],
-            ),
         )
 
-    def group(title):
+    def shortcut_row(label, shortcut):
+        keys = shortcut.replace("+", " + ").split()
         return ft.Container(
-            padding=ft.Padding(8, 12, 8, 4),
-            content=ft.Text(title, size=11, font_family=UI_FONT_STRONG,
-                            weight=ft.FontWeight.W_700,
-                            color=c(T.L_MUTED, T.D_MUTED)),
+            height=34, padding=ft.Padding(2, 4, 6, 4), border_radius=8,
+            content=ft.Row(spacing=8, controls=[
+                ft.Text(label, size=TEXT_UI, expand=True, font_family=UI_FONT,
+                        color=c(T.L_PRIMARY, T.D_PRIMARY)),
+                ft.Row(spacing=3, tight=True,
+                       controls=[keycap(k) if k != "+" else ft.Text(
+                           "+", size=10, color=c(T.L_MUTED, T.D_MUTED))
+                           for k in keys]),
+            ]),
         )
 
-    controls = []
-    for title, entries in SHORTCUTS:
-        controls.append(group(title.upper()))
-        controls.extend(row(label, key) for label, key in entries)
+    def group_control(title, entries):
+        return ft.Column(spacing=2, tight=True, controls=[
+            ft.Row(spacing=8, controls=[
+                ft.Text(title.upper(), style=ft.TextStyle(
+                    size=TEXT_CAPTION, font_family=UI_FONT_STRONG,
+                    weight=ft.FontWeight.W_700, letter_spacing=0.8,
+                    color=c(T.L_ACCENT, T.D_ACCENT))),
+                ft.Container(height=1, expand=True,
+                             bgcolor=c(T.L_BORDER, T.D_BORDER)),
+            ]),
+            *[shortcut_row(label, key) for label, key in entries],
+        ])
 
-    controls.append(ft.Divider(color=c(T.L_BORDER, T.D_BORDER)))
-    controls.append(ft.Container(
-        padding=ft.Padding(8, 8, 8, 0),
-        content=ft.Text(
-            "Astuce : tapez :code puis une espace pour insérer un emoji.\n"
-            "Exemples : :coeur  :feu  :ok  :sourire  :drapeau_fr\n\n"
-            "Tout ce que fait Carib est accessible depuis Ctrl+Maj+P.",
-            size=13, color=c(T.L_TERTIARY, T.D_TERTIARY)),
-    ))
+    def rebuild_groups(query=""):
+        left.controls.clear()
+        right.controls.clear()
+        visible_groups = []
+        needle = query.strip().lower()
+        for title, entries in SHORTCUTS:
+            filtered = [(label, key) for label, key in entries
+                        if not needle or needle in label.lower()
+                        or needle in key.lower() or needle in title.lower()]
+            if filtered:
+                visible_groups.append((title, filtered))
+        midpoint = (len(visible_groups) + 1) // 2
+        left.controls.extend(group_control(*group) for group in visible_groups[:midpoint])
+        right.controls.extend(group_control(*group) for group in visible_groups[midpoint:])
 
-    page.show_dialog(ft.AlertDialog(
-        title=ft.Text("Raccourcis clavier", size=16,
-                      font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(
-            width=460, height=420,
-            content=ft.Column(scroll=ft.ScrollMode.AUTO, spacing=1,
-                              controls=controls)),
-        actions=[ft.TextButton("Fermer", on_click=lambda e: page.pop_dialog())],
-    ))
+    search = ft.TextField(
+        hint_text="Filtrer les raccourcis…", prefix_icon=ft.Icons.SEARCH,
+        height=38, text_size=13, dense=True, border_radius=11,
+        bgcolor=c(T.L_EDITOR, T.D_EDITOR),
+        border_color=c(T.L_BORDER, T.D_BORDER),
+        focused_border_color=c(T.L_ACCENT, T.D_ACCENT),
+        on_change=lambda e: (rebuild_groups(e.control.value or ""), page.update()),
+    )
+    rebuild_groups()
+
+    content = ft.Container(
+        width=690, height=450,
+        content=ft.Column(spacing=14, controls=[
+            search,
+            ft.Row(spacing=28, expand=True,
+                   vertical_alignment=ft.CrossAxisAlignment.START,
+                   controls=[left, right]),
+        ]),
+    )
+    footer = ft.Text(f"Carib v{APP_VERSION} · Tous les raccourcis sont locaux",
+                     size=TEXT_META, font_family=UI_FONT,
+                     color=c(T.L_MUTED, T.D_MUTED))
+    dlg = modern_dialog(
+        page, c, "Aide", content, subtitle="Raccourcis clavier",
+        actions=[footer, primary_button("Fermer", c, lambda e: page.pop_dialog())],
+    )
+    dlg.actions_alignment = ft.MainAxisAlignment.SPACE_BETWEEN
+    page.show_dialog(dlg)

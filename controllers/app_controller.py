@@ -24,7 +24,8 @@ import threading
 import flet as ft
 
 from core.constants import (APP_FULL_NAME, APP_NAME, APP_VERSION, EDITOR_FONT, ICON_XS, MODE_READ,
-                       TOOLBAR_HEIGHT, UI_FONT, UI_FONT_STRONG, resource_path,
+                       TOOLBAR_HEIGHT, UI_FONT, UI_FONT_STRONG, MOTION_NORMAL,
+                       MOTION_PANEL, resource_path,
                        svg_icon)
 from models.document import Document
 from models.editor_state import EditorState
@@ -150,7 +151,8 @@ class AppController:
     def _configure_page(self):
         p = self.page
         p.title = f"{APP_FULL_NAME} — v{APP_VERSION}"
-        p.theme_mode = ft.ThemeMode.LIGHT
+        if p.theme_mode != ft.ThemeMode.DARK:
+            p.theme_mode = ft.ThemeMode.LIGHT
         p.padding = 0
         p.spacing = 0
         p.window = ft.Window(width=1280, height=820, min_width=1100, min_height=700,
@@ -163,8 +165,34 @@ class AppController:
             UI_FONT: "Font/Nunito/static/Nunito-SemiBold.ttf",
             UI_FONT_STRONG: "Font/Nunito/static/Nunito-Bold.ttf",
         }
-        p.theme = ft.Theme(font_family=UI_FONT)
-        p.dark_theme = ft.Theme(font_family=UI_FONT)
+        dialog_shape = ft.RoundedRectangleBorder(radius=18)
+        p.theme = ft.Theme(
+            font_family=UI_FONT,
+            use_material3=True,
+            scaffold_bgcolor=T.L_BG,
+            hover_color=T.L_HOVER,
+            focus_color=ft.Colors.with_opacity(0.14, T.L_ACCENT),
+            dialog_theme=ft.DialogTheme(
+                bgcolor=T.L_SURFACE, elevation=18, shape=dialog_shape,
+                shadow_color=ft.Colors.with_opacity(0.24, ft.Colors.BLACK),
+                barrier_color=ft.Colors.with_opacity(0.38, "#17171D"),
+                actions_padding=ft.Padding(20, 12, 20, 16),
+            ),
+        )
+        p.dark_theme = ft.Theme(
+            font_family=UI_FONT,
+            use_material3=True,
+            scaffold_bgcolor=T.D_BG,
+            hover_color=T.D_HOVER,
+            focus_color=ft.Colors.with_opacity(0.18, T.D_ACCENT),
+            dialog_theme=ft.DialogTheme(
+                bgcolor=T.D_SURFACE, elevation=22, shape=dialog_shape,
+                shadow_color=ft.Colors.with_opacity(0.55, ft.Colors.BLACK),
+                barrier_color=ft.Colors.with_opacity(0.62, ft.Colors.BLACK),
+                actions_padding=ft.Padding(20, 12, 20, 16),
+            ),
+        )
+        p.bgcolor = T.L_BG
         #: Un clic répété sur un bouton de menu ne doit pas empiler dix
         #: copies du même dialogue.
         install_dialog_guard(p)
@@ -250,21 +278,25 @@ class AppController:
     # ==================================================================
     def _build_status_widgets(self):
         muted = self.c(T.L_TERTIARY, T.D_TERTIARY)
-        self.st_mode = ft.Text("Mode Texte", size=12,
+        self.st_mode = ft.Text("Mode Texte", size=11.5,
                                color=self.c(T.L_ACCENT, T.D_ACCENT),
                                font_family=UI_FONT_STRONG,
                                weight=ft.FontWeight.W_600)
-        self.st_msg = ft.Text("", size=12, color=muted, expand=True)
-        self.st_chars = ft.Text("0 car.", size=12, color=muted)
-        self.st_words = ft.Text("0 mots", size=12, color=muted)
-        self.st_zoom = ft.Text("100 %", size=12, color=muted)
-        self.st_pos = ft.Text("Ln 1, Col 1", size=12, color=muted)
-        self.st_encoding = ft.Text("UTF-8 · LF", size=12, color=muted)
+        self.st_msg = ft.Text("", size=11.5, color=muted, expand=True)
+        self.st_chars = ft.Text("0 car.", size=11.5, color=muted)
+        self.st_words = ft.Text("0 mots", size=11.5, color=muted)
+        zoom_label = f"{self.state.zoom_level} %"
+        self.st_zoom = ft.Text(zoom_label, size=11.5, color=muted)
+        self.toolbar_zoom = ft.Text(
+            zoom_label, size=11.5, width=42, text_align=ft.TextAlign.CENTER,
+            font_family=UI_FONT_STRONG, color=muted)
+        self.st_pos = ft.Text("Ln 1, Col 1", size=11.5, color=muted)
+        self.st_encoding = ft.Text("UTF-8 · LF", size=11.5, color=muted)
 
     def _build_persistent_containers(self):
         """Conteneurs réutilisés d'un rendu à l'autre, pour de vraies animations."""
         self._sidebar = ft.Container(
-            width=56, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            width=52, clip_behavior=ft.ClipBehavior.HARD_EDGE,
             animate=ft.Animation(250, ft.AnimationCurve.EASE_OUT_CUBIC))
         self._toolbar_wrap = ft.Container(
             height=TOOLBAR_HEIGHT, opacity=1.0,
@@ -275,9 +307,15 @@ class AppController:
         self._tab_bar_wrap = ft.Container()
         # Zones remplacées en place à chaque rafraîchissement, plutôt que
         # recréées : Flutter conserve alors l'état et les animations.
-        self._search_bar_wrap = ft.Container(visible=False)
+        self._search_bar_wrap = ft.Container(
+            visible=False, opacity=0.0, offset=ft.Offset(0, -0.12),
+            animate_opacity=ft.Animation(MOTION_NORMAL, ft.AnimationCurve.EASE_OUT),
+            animate_offset=ft.Animation(MOTION_NORMAL, ft.AnimationCurve.EASE_OUT))
         self._status_wrap = ft.Container()
-        self._ai_panel_wrap = ft.Container()
+        self._ai_panel_wrap = ft.Container(
+            width=0, opacity=0.0, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            animate=ft.Animation(MOTION_PANEL, ft.AnimationCurve.EASE_OUT_CUBIC),
+            animate_opacity=ft.Animation(MOTION_NORMAL, ft.AnimationCurve.EASE_OUT))
         self._overlay_wrap = ft.Container(expand=True, visible=False)
         self._center_column = None
         self._editor_backdrop = None
@@ -319,7 +357,8 @@ class AppController:
         """
         # Couche de spans (coloration, recherche, diff, texte fantôme).
         self._span_text = ft.Text(spans=[], selectable=False)
-        self._span_layer = ft.Container(expand=True, padding=30, visible=False,
+        self._span_layer = ft.Container(
+            expand=True, padding=ft.Padding(40, 36, 40, 36), visible=False,
                                         content=self._span_text)
 
         self._editor_stack = ft.Stack(expand=True, controls=[
@@ -342,7 +381,7 @@ class AppController:
             on_tap_link=lambda e: self.page.launch_url(e.data))
         self._md_divider = ft.Container(width=1, visible=False)
         self._md_wrap = ft.Container(
-            visible=False, padding=30,
+            visible=False, padding=ft.Padding(40, 36, 40, 36),
             content=ft.Column(expand=True, scroll=ft.ScrollMode.AUTO,
                               controls=[self._md_view]))
 
@@ -440,7 +479,8 @@ class AppController:
             self._get_cursor_pos)
         self.view_ctrl = ViewController(
             page, self.state, self.editor, self.c, self.tab_ctrl, svc,
-            zoom_widget=self.st_zoom, editor_wrap=self._editor_wrap,
+            zoom_widget=self.st_zoom, toolbar_zoom_widget=self.toolbar_zoom,
+            editor_wrap=self._editor_wrap,
             sidebar=self._sidebar, toolbar_wrap=self._toolbar_wrap,
             build_sidebar_fn=lambda: build_sidebar(self.state, self.c,
                                                    self._sidebar_callbacks()),
@@ -1270,6 +1310,7 @@ class AppController:
             "show_options": self._show_options,
             "open_recent": self._open_recent,
             "toggle_recent_expanded": self._toggle_recent_expanded,
+            "open_command_bar": self.ux_ctrl.open_command_bar,
             "recent_chevron": self._recent_chevron_img,
             "recent_expandable": self._recent_expandable,
         }
@@ -1279,6 +1320,7 @@ class AppController:
             "switch_tab": self._switch_tab,
             "close_tab": self._confirm_close_tab,
             "add_tab": self._new_tab,
+            "open_command_bar": self.ux_ctrl.open_command_bar,
         }
 
     def _menu_bar_callbacks(self):
@@ -1303,6 +1345,7 @@ class AppController:
             "toggle_search": self.search_ctrl.toggle_search,
             "zoom_in": self.zoom_in,
             "zoom_out": self.zoom_out,
+            "zoom_widget": self.toolbar_zoom,
             "set_mode": self.set_mode,
             "open_command_bar": self.ux_ctrl.open_command_bar,
         }
@@ -1451,6 +1494,7 @@ class AppController:
         complet (changement d'onglet, résultat IA, enregistrement) ne
         reconstruit désormais que ce qui a effectivement changé.
         """
+        self.page.bgcolor = self.c(T.L_BG, T.D_BG)
         self._apply_toolbar()
         self._apply_search_bar()
         self._apply_sidebar()
@@ -1484,13 +1528,22 @@ class AppController:
         self._sig_search = sig
 
         if s.visible:
+            opening = not self._search_bar_wrap.visible
             bar, _, counter = build_search_bar(self.c, s,
                                                self._search_bar_callbacks())
             self.search_ctrl.counter_ref = counter
             self._search_bar_wrap.content = bar
             self._search_bar_wrap.visible = True
+            if opening:
+                self._search_bar_wrap.opacity = 0.0
+                self._search_bar_wrap.offset = ft.Offset(0, -0.12)
+                self.page.update(self._search_bar_wrap)
+            self._search_bar_wrap.opacity = 1.0
+            self._search_bar_wrap.offset = ft.Offset(0, 0)
         else:
             self._search_bar_wrap.visible = False
+            self._search_bar_wrap.opacity = 0.0
+            self._search_bar_wrap.offset = ft.Offset(0, -0.12)
             self._search_bar_wrap.content = None
             self.search_ctrl.counter_ref = None
 
@@ -1545,9 +1598,20 @@ class AppController:
         sig = (showing, self.dark())
         if not showing and sig == self._sig_ai_panel:
             return
+        was_showing = self._ai_panel_wrap.width == 380
         self._sig_ai_panel = sig
-        self._ai_panel_wrap.content = build_ai_panel(
-            self.state, self.c, self._ai_panel_callbacks())
+        if showing:
+            self._ai_panel_wrap.content = build_ai_panel(
+                self.state, self.c, self._ai_panel_callbacks())
+            if not was_showing:
+                self._ai_panel_wrap.width = 0
+                self._ai_panel_wrap.opacity = 0.0
+                self.page.update(self._ai_panel_wrap)
+            self._ai_panel_wrap.width = 380
+            self._ai_panel_wrap.opacity = 1.0
+        else:
+            self._ai_panel_wrap.width = 0
+            self._ai_panel_wrap.opacity = 0.0
 
     def _style_editor(self, size: int):
         self.editor.text_size = size

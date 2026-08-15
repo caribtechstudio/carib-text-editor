@@ -6,7 +6,7 @@ import os
 
 import flet as ft
 
-from core.constants import ICON_SM, ICON_XS, svg_icon, UI_FONT, UI_FONT, UI_FONT_STRONG
+from core.constants import ICON_SM, ICON_XS, svg_icon, UI_FONT, UI_FONT_STRONG
 from models.workspace import build_tree, display_name
 from core.theme import T
 

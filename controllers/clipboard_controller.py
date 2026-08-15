@@ -11,9 +11,8 @@ fusionné avec la frappe qui le précédait.
 
 import flet as ft
 
-from core.constants import UI_FONT_STRONG
-
 from core.theme import T
+from views.dialogs._common import danger_button, modern_dialog, secondary_button
 
 
 class ClipboardController:
@@ -148,19 +147,16 @@ class ClipboardController:
             self._snack("Contenu effacé — Ctrl+Z pour annuler.",
                         c(T.L_WARNING, T.D_WARNING))
 
-        dlg = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Effacer le contenu", size=16,
-                          font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-            content=ft.Text(
+        content = ft.Container(width=430, content=ft.Text(
                 f"Tout le texte de « {title} » sera supprimé.\n"
                 "L'action reste annulable avec Ctrl+Z.",
-                size=14, color=c(T.L_SECONDARY, T.D_SECONDARY)),
+                size=14, color=c(T.L_SECONDARY, T.D_SECONDARY)))
+        dlg = modern_dialog(
+            self._page, c, "Effacer le contenu", content,
+            subtitle="Le document restera ouvert", modal=True,
             actions=[
-                ft.TextButton("Annuler", on_click=lambda e: self._page.pop_dialog()),
-                ft.Button("Effacer", bgcolor=c(T.L_ERROR, T.D_ERROR),
-                          color="#FFFFFF", on_click=confirm),
+                secondary_button("Annuler", c, lambda e: self._page.pop_dialog()),
+                danger_button("Effacer", c, confirm, "trash-xmark"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END,
         )
         self._page.show_dialog(dlg)

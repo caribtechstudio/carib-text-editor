@@ -24,6 +24,7 @@ from models.llm.manager import (PROFILE_LABELS, PROFILES, TIER_BEST, TIER_FAST,
                                 TIER_STANDARD)
 from models.llm.registry import PROVIDER_ORDER, PROVIDERS
 from core.theme import T
+from views.dialogs._common import modern_dialog, primary_button, secondary_button
 
 _TIER_LABELS = {
     TIER_FAST: "Rapide (autocomplétion)",
@@ -74,16 +75,12 @@ def show_ai_setup(page, c, manager, on_changed=None):
         notify()
         page.pop_dialog()
 
-    dlg = ft.AlertDialog(
-        title=ft.Row(spacing=10, controls=[
-            svg_icon("user-robot", size=ICON_MD, color=c(T.L_ACCENT, T.D_ACCENT)),
-            ft.Text("Intelligence artificielle", size=16,
-                    font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        ]),
-        content=ft.Container(width=640, height=body_h, content=ft.Column(
+    content = ft.Container(width=640, height=body_h, content=ft.Column(
             spacing=10, controls=[body, status])),
-        actions=[ft.TextButton("Fermer", on_click=close)],
-        actions_alignment=ft.MainAxisAlignment.END,
+    dlg = modern_dialog(
+        page, c, "Intelligence artificielle", content,
+        subtitle="Fournisseurs, modèles et confidentialité",
+        actions=[primary_button("Fermer", c, close)], on_close=close,
     )
 
     body.controls = _build(page, c, manager, ui, refresh, notify)
@@ -713,20 +710,16 @@ def show_cloud_consent(page, c, manager, on_accept):
         remember,
     ]
 
-    actions = [ft.TextButton("Annuler", on_click=lambda e: page.pop_dialog())]
+    actions = [secondary_button("Annuler", c, lambda e: page.pop_dialog())]
     if policy_url:
         actions.append(ft.TextButton(f"Politique {label}", url=policy_url))
-    actions.append(ft.Button("Envoyer", bgcolor=c(T.L_ACCENT, T.D_ACCENT),
-                             color="#FFFFFF", on_click=accept))
+    actions.append(primary_button("Envoyer", c, accept, "sparkles"))
 
-    dlg = ft.AlertDialog(
-        modal=True,
-        title=ft.Text(f"Envoyer ce texte à {label} ?", size=16,
-                      font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=500, content=ft.Column(
+    content = ft.Container(width=500, content=ft.Column(
             spacing=12, tight=True, scroll=ft.ScrollMode.AUTO,
             controls=details)),
-        actions=actions,
-        actions_alignment=ft.MainAxisAlignment.END,
+    dlg = modern_dialog(
+        page, c, f"Envoyer ce texte à {label} ?", content,
+        subtitle="Confirmation avant transmission", modal=True, actions=actions,
     )
     page.show_dialog(dlg)

@@ -31,7 +31,7 @@ class ViewController:
     def __init__(self, page, state, editor, c, tab_ctrl, services,
                  zoom_widget, editor_wrap, sidebar, toolbar_wrap,
                  build_sidebar_fn, build_toolbar_fn, autocomplete_ctrl,
-                 refresh_layer_fn=None):
+                 refresh_layer_fn=None, toolbar_zoom_widget=None):
         self._page = page
         self.state = state
         self.editor = editor
@@ -46,6 +46,7 @@ class ViewController:
 
         # Widgets pilotés directement, sans reconstruire l'arbre.
         self._st_zoom = zoom_widget
+        self._toolbar_zoom = toolbar_zoom_widget
         self._editor_wrap = editor_wrap
         self._sidebar = sidebar
         self._toolbar_wrap = toolbar_wrap
@@ -109,6 +110,9 @@ class ViewController:
 
         self._st_zoom.value = f"{self.state.zoom_level} %"
         self._st_zoom.color = self._c(T.L_TERTIARY, T.D_TERTIARY)
+        if self._toolbar_zoom is not None:
+            self._toolbar_zoom.value = f"{self.state.zoom_level} %"
+            self._toolbar_zoom.color = self._c(T.L_SECONDARY, T.D_SECONDARY)
 
         if direction and self._editor_wrap is not None:
             # Léger dépassement puis retour : le zoom devient perceptible
@@ -232,7 +236,7 @@ class ViewController:
         self._save()
 
     def apply_sidebar(self):
-        self._sidebar.width = 56 if self.state.sidebar_collapsed else 240
+        self._sidebar.width = 52 if self.state.sidebar_collapsed else 232
         self._sidebar.content = self._build_sidebar()
 
     def _announce(self, label: str, enabled: bool):

@@ -14,10 +14,10 @@ import os
 
 import flet as ft
 
-from core.constants import UI_FONT_STRONG
-
 from models import recovery
 from core.theme import T
+from views.dialogs._common import (danger_button, modern_dialog, primary_button,
+                                   secondary_button)
 
 
 class DialogController:
@@ -81,6 +81,8 @@ class DialogController:
             "is_auto_save": lambda: self.state.auto_save,
             "toggle_autocomplete": app.toggle_autocomplete,
             "is_autocomplete": lambda: self.state.ac_enabled,
+            "current_mode": lambda: self.state.mode,
+            "current_ai": app.llm.status_label,
             "show_model_manager": app._show_ai_setup,
             "show_privacy": self.show_privacy_center,
             "check_updates": app.update_ctrl.check_now,
@@ -145,16 +147,15 @@ class DialogController:
             text_size=13, border_radius=6,
             border_color=self._c(T.L_BORDER, T.D_BORDER), on_submit=go)
 
-        self._page.show_dialog(ft.AlertDialog(
-            title=ft.Text("Aller à la ligne", size=16,
-                          font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-            content=ft.Container(width=300, content=field),
+        self._page.show_dialog(modern_dialog(
+            self._page, self._c, "Aller à la ligne",
+            ft.Container(width=300, content=field),
+            subtitle=f"Le document contient {total} lignes",
             actions=[
-                ft.TextButton("Annuler", on_click=self._close),
-                ft.Button("Aller", bgcolor=self._c(T.L_ACCENT, T.D_ACCENT),
-                          color="#FFFFFF", on_click=go),
+                secondary_button("Annuler", self._c, self._close),
+                primary_button("Aller", self._c, go),
             ],
-            actions_alignment=ft.MainAxisAlignment.END))
+        ))
 
     # ==================================================================
     # Récupération après arrêt anormal
@@ -182,23 +183,21 @@ class DialogController:
             self._app._pending_recovery = []
             self._snack("Documents récupérables supprimés.")
 
-        self._page.show_dialog(ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Récupération après interruption", size=16,
-                          font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-            content=ft.Container(width=460, content=ft.Text(
+        content = ft.Container(width=460, content=ft.Text(
                 f"Carib s'est arrêté sans enregistrer{' — ' + age if age else ''}.\n"
                 f"Les documents suivants ont été retrouvés :\n\n{listing}\n\n"
                 "Ils seront rouverts dans de nouveaux onglets ; à vous de les "
                 "enregistrer où vous le souhaitez.",
-                size=13, color=self._c(T.L_SECONDARY, T.D_SECONDARY))),
+                size=13, color=self._c(T.L_SECONDARY, T.D_SECONDARY)))
+        self._page.show_dialog(modern_dialog(
+            self._page, self._c, "Récupération après interruption", content,
+            subtitle="Des documents non enregistrés ont été retrouvés", modal=True,
             actions=[
                 ft.TextButton("Ignorer", on_click=self._close),
-                ft.TextButton("Supprimer définitivement", on_click=discard),
-                ft.Button("Récupérer", bgcolor=self._c(T.L_ACCENT, T.D_ACCENT),
-                          color="#FFFFFF", on_click=restore),
+                danger_button("Supprimer", self._c, discard, "trash-xmark"),
+                primary_button("Récupérer", self._c, restore, "rotate-left"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END))
+        ))
 
     # ==================================================================
     # Fermeture
@@ -219,20 +218,19 @@ class DialogController:
             self._close()
             await self._app.shutdown_and_destroy()
 
-        self._page.show_dialog(ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Modifications non enregistrées", size=16,
-                          font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-            content=ft.Text(f"Les documents suivants ont été modifiés :\n{detail}{note}",
-                            size=14, color=self._c(T.L_SECONDARY, T.D_SECONDARY)),
+        content = ft.Container(width=470, content=ft.Text(
+            f"Les documents suivants ont été modifiés :\n{detail}{note}",
+            size=14, color=self._c(T.L_SECONDARY, T.D_SECONDARY)))
+        self._page.show_dialog(modern_dialog(
+            self._page, self._c, "Modifications non enregistrées", content,
+            subtitle="Choisissez quoi faire avant de quitter", modal=True,
             actions=[
-                ft.TextButton("Annuler", on_click=self._close),
+                secondary_button("Annuler", self._c, self._close),
                 ft.TextButton("Quitter sans enregistrer", on_click=quit_anyway),
-                ft.Button("Enregistrer et quitter",
-                          bgcolor=self._c(T.L_ACCENT, T.D_ACCENT),
-                          color="#FFFFFF", on_click=save_and_quit),
+                primary_button("Enregistrer et quitter", self._c, save_and_quit,
+                               "disk"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END))
+        ))
 
     def confirm_close_tab(self, idx: int):
         docs = self.state.docs
@@ -273,16 +271,15 @@ class DialogController:
             self._tab.close_tab(idx)
 
         hint = "" if d.path else " Ce document n'a jamais été enregistré."
-        self._page.show_dialog(ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Fermer l'onglet", size=16, font_family=UI_FONT_STRONG,
-                          weight=ft.FontWeight.W_700),
-            content=ft.Text(f"« {d.title or 'Sans titre'} » a été modifié.{hint}",
-                            size=14, color=self._c(T.L_SECONDARY, T.D_SECONDARY)),
+        content = ft.Container(width=430, content=ft.Text(
+            f"« {d.title or 'Sans titre'} » a été modifié.{hint}",
+            size=14, color=self._c(T.L_SECONDARY, T.D_SECONDARY)))
+        self._page.show_dialog(modern_dialog(
+            self._page, self._c, "Fermer l’onglet", content,
+            subtitle="Les modifications ne sont pas encore enregistrées", modal=True,
             actions=[
-                ft.TextButton("Annuler", on_click=self._close),
+                secondary_button("Annuler", self._c, self._close),
                 ft.TextButton("Fermer sans enregistrer", on_click=close_without_save),
-                ft.Button("Enregistrer", bgcolor=self._c(T.L_ACCENT, T.D_ACCENT),
-                          color="#FFFFFF", on_click=save_and_close),
+                primary_button("Enregistrer", self._c, save_and_close, "disk"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END))
+        ))

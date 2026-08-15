@@ -69,17 +69,31 @@ UI_FONT_STRONG = "Nunito Bold"
 # (8 dp de marge de chaque côté). On reprend exactement cette métrique
 # pour que la barre d'outils ait la même densité visuelle que Google Docs.
 # ---------------------------------------------------------------------------
-ICON_XS = 16   # chevrons, indicateurs inline
-ICON_SM = 20   # icônes secondaires (barre de recherche, listes)
-ICON_MD = 24   # standard — barre d'outils et sidebar
-ICON_LG = 28   # accents (logo, en-têtes de dialogue)
+ICON_XS = 14   # chevrons, indicateurs inline
+ICON_SM = 16   # icônes secondaires (barre de recherche, listes)
+ICON_MD = 18   # standard — barre d'outils et sidebar
+ICON_LG = 24   # accents (logo, en-têtes de dialogue)
 
-ICON_BTN_PADDING = 8          # ICON_MD + 2*8 = 40 → cible Google
-ICON_BTN_SIZE = ICON_MD + ICON_BTN_PADDING * 2   # 40
+ICON_BTN_PADDING = 8          # 18 + 2*8 = 34 px, cible visuelle moderne
+ICON_BTN_SIZE = ICON_MD + ICON_BTN_PADDING * 2   # 34
 
 # Hauteur de la barre d'outils : bouton (40) + padding vertical (2*4)
 # + marge du conteneur (2*10)
-TOOLBAR_HEIGHT = ICON_BTN_SIZE + 8 + 20   # 68
+TOOLBAR_HEIGHT = ICON_BTN_SIZE + 12 + 12   # 58
+
+MOTION_FAST = 120
+MOTION_NORMAL = 180
+MOTION_PANEL = 260
+
+# Échelle commune de l'interface. Les noms rendent les choix explicites dans
+# les vues et évitent la dérive progressive des tailles entre dialogues.
+TEXT_CAPTION = 10.5
+TEXT_META = 11.5
+TEXT_UI = 13
+TEXT_TITLE = 18
+RADIUS_SM = 8
+RADIUS_MD = 10
+RADIUS_LG = 18
 
 
 def app_root() -> str:
@@ -109,13 +123,34 @@ def svg_icon(name: str, size: int = ICON_MD, color=None) -> ft.Image:
     return ft.Image(src=f"icon/{name}.svg", width=size, height=size, color=color)
 
 
+def hover_effect(idle_bg=None, hover_bg=None, *, scale=1.02,
+                 hover_opacity=0.92):
+    """Gestionnaire de survol court, sans reconstruction de la vue."""
+    def handle(e):
+        hovered = e.data is True or str(e.data).lower() == "true"
+        if hover_bg is not None:
+            e.control.bgcolor = hover_bg if hovered else idle_bg
+        e.control.scale = ft.Scale(scale=scale if hovered else 1.0)
+        e.control.opacity = hover_opacity if hovered else 1.0
+        try:
+            e.control.update()
+        except Exception:
+            pass
+    return handle
+
+
 def svg_icon_btn(name: str, size: int = ICON_MD, color=None, tooltip=None,
                  on_click=None, padding: int = ICON_BTN_PADDING,
                  hover_color=None) -> ft.Container:
     """Bouton cliquable avec icône SVG (remplace ft.IconButton)."""
     return ft.Container(
         width=size + padding * 2, height=size + padding * 2,
-        border_radius=8, alignment=ft.Alignment(0, 0),
+        border_radius=RADIUS_SM, alignment=ft.Alignment(0, 0),
         ink=True, tooltip=tooltip, on_click=on_click,
+        scale=ft.Scale(scale=1.0),
+        animate_scale=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        animate_opacity=ft.Animation(MOTION_FAST, ft.AnimationCurve.EASE_OUT),
+        on_hover=hover_effect(None, hover_color, scale=1.05,
+                              hover_opacity=0.86),
         content=svg_icon(name, size=size, color=color),
     )

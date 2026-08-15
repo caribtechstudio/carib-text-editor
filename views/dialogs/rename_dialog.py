@@ -4,9 +4,10 @@ views/dialogs/rename_dialog.py — Dialogue de renommage de fichier.
 
 import flet as ft
 
-from core.constants import UI_FONT_STRONG
+from core.constants import UI_FONT
 
 from core.theme import T
+from views.dialogs._common import modern_dialog, primary_button, secondary_button
 
 
 def show_rename_dialog(page, c, document, callbacks):
@@ -35,13 +36,11 @@ def show_rename_dialog(page, c, document, callbacks):
         page.pop_dialog()
         callbacks["do_rename"](new_name)
 
-    dlg = ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Renommer le fichier", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=360, content=name_field),
+    page.show_dialog(modern_dialog(
+        page, c, "Renommer le fichier", ft.Container(width=360, content=name_field),
+        subtitle="Le contenu du document reste inchangé", modal=True,
         actions=[
-            ft.TextButton("Annuler", on_click=lambda ev: page.pop_dialog()),
-            ft.FilledButton("Renommer", on_click=_on_rename),
+            secondary_button("Annuler", c, lambda e: page.pop_dialog()),
+            primary_button("Renommer", c, _on_rename, icon="edit"),
         ],
-    )
-    page.show_dialog(dlg)
+    ))

@@ -21,14 +21,21 @@ def build_menu_bar(c, callbacks):
         show_model_manager
     """
     ico_c = c(T.L_SECONDARY, T.D_SECONDARY)
+    ai_c = c(T.L_ACCENT, T.D_ACCENT)
+    zoom_widget = callbacks.get("zoom_widget")
+    if not isinstance(zoom_widget, ft.Control):
+        zoom_widget = ft.Text("100 %", size=11.5, width=42,
+                              text_align=ft.TextAlign.CENTER,
+                              color=c(T.L_SECONDARY, T.D_SECONDARY))
 
-    def tool_btn(tooltip, icon_name, on_click):
-        return svg_icon_btn(icon_name, size=ICON_MD, color=ico_c, tooltip=tooltip,
-                            on_click=on_click, padding=ICON_BTN_PADDING)
+    def tool_btn(tooltip, icon_name, on_click, color=None):
+        return svg_icon_btn(icon_name, size=ICON_MD, color=color or ico_c,
+                            tooltip=tooltip, on_click=on_click,
+                            padding=ICON_BTN_PADDING)
 
     def sep():
-        return ft.Container(width=1, height=ICON_MD, bgcolor=c(T.L_BORDER, T.D_BORDER),
-                            margin=ft.Margin(6, 0, 6, 0))
+        return ft.Container(width=1, height=22, bgcolor=c(T.L_BORDER, T.D_BORDER),
+                            margin=ft.Margin(5, 0, 5, 0))
 
     # --- Sous-menu Traduction ---
     def _translate_menu_item(label, on_click):
@@ -38,7 +45,7 @@ def build_menu_bar(c, callbacks):
         )
 
     translate_menu = ft.SubmenuButton(
-        content=svg_icon("language-exchange", size=ICON_MD, color=ico_c),
+        content=svg_icon("language-exchange", size=ICON_MD, color=ai_c),
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=8),
             padding=ICON_BTN_PADDING,
@@ -54,7 +61,7 @@ def build_menu_bar(c, callbacks):
 
     # --- Sous-menu Reformulation ---
     reformulate_menu = ft.SubmenuButton(
-        content=svg_icon("sparkles", size=ICON_MD, color=ico_c),
+        content=svg_icon("sparkles", size=ICON_MD, color=ai_c),
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=8),
             padding=ICON_BTN_PADDING,
@@ -76,12 +83,12 @@ def build_menu_bar(c, callbacks):
     )
 
     menu = ft.Container(
-        padding=ft.Padding(8, 4, 8, 4), border_radius=10,
+        padding=6, border_radius=14,
         bgcolor=c(T.L_TOOLBAR, T.D_TOOLBAR),
         border=ft.Border.all(1, c(T.L_TB_BORDER, T.D_TB_BORDER)),
-        shadow=ft.BoxShadow(spread_radius=0, blur_radius=8,
-                            color=ft.Colors.with_opacity(0.06, ft.Colors.BLACK),
-                            offset=ft.Offset(0, 2)),
+        shadow=ft.BoxShadow(spread_radius=0, blur_radius=20,
+                            color=ft.Colors.with_opacity(0.09, ft.Colors.BLACK),
+                            offset=ft.Offset(0, 6)),
         content=ft.MenuBar(
             expand=True,
             style=ft.MenuStyle(
@@ -91,16 +98,21 @@ def build_menu_bar(c, callbacks):
             ),
             controls=[
                 # --- 3 boutons IA ---
+                ft.Container(
+                    padding=2, border_radius=10,
+                    bgcolor=c(T.L_ACCENT_LT, T.D_ACCENT_LT),
+                    content=ft.Row(spacing=1, tight=True, controls=[
                 tool_btn("Correction IA  F7", "badge-check",
-                         lambda e: callbacks["run_correction"]()),
+                         lambda e: callbacks["run_correction"](), ai_c),
                 translate_menu,
                 reformulate_menu,
+                tool_btn("Voix", "circle-microphone-lines",
+                         lambda e: callbacks["show_voice_menu"](), ai_c),
+                    ]),
+                ),
                 sep(),
                 tool_btn("Emojis", "laugh-beam",
                          lambda e: callbacks["show_emoji_picker"]()),
-                sep(),
-                tool_btn("Voix", "circle-microphone-lines",
-                         lambda e: callbacks["show_voice_menu"]()),
                 sep(),
                 tool_btn("Copier", "clone",
                          callbacks["copy_text_handler"]),
@@ -116,10 +128,17 @@ def build_menu_bar(c, callbacks):
                 tool_btn("Retablir  Ctrl+Y", "turn-right",
                          callbacks["redo"]),
                 sep(),
-                tool_btn("Zoom arriere  Ctrl+Num-", "minus-circle",
-                         lambda e: callbacks["zoom_out"]()),
-                tool_btn("Zoom avant  Ctrl+Num+", "square-plus",
-                         lambda e: callbacks["zoom_in"]()),
+                ft.Container(
+                    padding=2, border_radius=10,
+                    bgcolor=c(T.L_HOVER, T.D_HOVER),
+                    content=ft.Row(spacing=0, tight=True, controls=[
+                        tool_btn("Zoom arrière  Ctrl+Num-", "minus-circle",
+                                 lambda e: callbacks["zoom_out"]()),
+                        zoom_widget,
+                        tool_btn("Zoom avant  Ctrl+Num+", "add",
+                                 lambda e: callbacks["zoom_in"]()),
+                    ]),
+                ),
                 sep(),
                 tool_btn("Rechercher  Ctrl+F", "search",
                          lambda e: callbacks["toggle_search"]()),
@@ -135,5 +154,5 @@ def build_menu_bar(c, callbacks):
     )
     return ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
-        controls=[ft.Container(content=menu, margin=10)],
+        controls=[ft.Container(content=menu, margin=6)],
     )

@@ -20,6 +20,7 @@ from core.constants import (
     APP_VERSION, ICON_SM, ISSUES_URL, UI_FONT, UI_FONT_STRONG, svg_icon,
 )
 from core.theme import T
+from views.dialogs._common import modern_dialog, primary_button, secondary_button
 
 
 def show_crash_report(page, c, title: str, message: str, log_file: str,
@@ -58,11 +59,7 @@ def show_crash_report(page, c, title: str, message: str, log_file: str,
     snack = ft.Text("", size=11, visible=False, font_family=UI_FONT,
                     color=c(T.L_ACCENT, T.D_ACCENT))
 
-    dlg = ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Une erreur inattendue s'est produite", size=16,
-                      font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=520, content=ft.Column(
+    content = ft.Container(width=520, content=ft.Column(
             spacing=12, tight=True, controls=[
                 ft.Text(
                     "Carib continue de fonctionner, mais quelque chose a mal "
@@ -91,16 +88,18 @@ def show_crash_report(page, c, title: str, message: str, log_file: str,
                         color=c(T.L_MUTED, T.D_MUTED)),
                 ]),
                 snack,
-            ])),
-        actions=[
-            ft.TextButton("Ouvrir le dossier du journal", on_click=open_log_folder),
-            *([ft.TextButton("Copier les détails", on_click=copy_details)]
-              if clipboard is not None else []),
-            ft.TextButton("Signaler", url=ISSUES_URL),
-            ft.Button("Fermer", bgcolor=c(T.L_ACCENT, T.D_ACCENT),
-                      color="#FFFFFF",
-                      on_click=lambda e: page.pop_dialog()),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END)
+            ]))
+
+    actions = [secondary_button("Journal", c, open_log_folder, "folder-open")]
+    if clipboard is not None:
+        actions.append(secondary_button("Copier", c, copy_details, "clone"))
+    actions.extend([
+        ft.TextButton("Signaler", url=ISSUES_URL),
+        primary_button("Fermer", c, lambda e: page.pop_dialog()),
+    ])
+    dlg = modern_dialog(
+        page, c, "Une erreur inattendue s’est produite", content,
+        subtitle="Vos documents restent protégés", modal=True, actions=actions,
+    )
 
     page.show_dialog(dlg)

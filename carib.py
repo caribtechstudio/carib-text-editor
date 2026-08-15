@@ -37,7 +37,7 @@ startup_probe.mark("1_python_pret")     # interpréteur + import de flet termin�
 # Le journal s'installe avant tout le reste : une exception levée pendant la
 # construction de l'application doit laisser une trace, elle aussi. C'est du
 # stdlib (`logging`), le coût au démarrage est négligeable.
-from core.constants import APP_VERSION  # noqa: E402
+from core.constants import APP_FULL_NAME, APP_VERSION  # noqa: E402
 from core import logging_setup  # noqa: E402
 
 logging_setup.install(APP_VERSION)
@@ -75,5 +75,56 @@ async def main(page: ft.Page):
     AppController(page, startup_paths=_startup_paths)
 
 
+async def boot_screen(page: ft.Page):
+    """Peint immédiatement une transition Carib pendant les imports lourds.
+
+    Le client de bureau est alors déjà connecté, mais l'orchestrateur et les
+    modèles ne sont pas encore chargés. Cette vue évite un écran blanc ou un
+    message générique pendant ce court intervalle.
+    """
+    dark = False
+    try:
+        import json
+        session_file = os.path.join(os.path.expanduser("~"), ".carib", "session.json")
+        with open(session_file, "r", encoding="utf-8") as stream:
+            dark = json.load(stream).get("settings", {}).get("theme") == "dark"
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+
+    bg = "#17171C" if dark else "#FBFBFD"
+    primary = "#ECECEF" if dark else "#17171D"
+    muted = "#858590"
+    accent = "#9A85FF" if dark else "#6A4DF5"
+    track = "#29292F" if dark else "#ECECF1"
+
+    page.title = APP_FULL_NAME
+    page.theme_mode = ft.ThemeMode.DARK if dark else ft.ThemeMode.LIGHT
+    page.padding = 0
+    page.spacing = 0
+    page.bgcolor = bg
+    boot = ft.Container(
+        expand=True, bgcolor=bg, alignment=ft.Alignment(0, 0), opacity=0.0,
+        animate_opacity=ft.Animation(240, ft.AnimationCurve.EASE_OUT),
+        content=ft.Column(
+            tight=True, spacing=14,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Image(src="icon/icon.ico", width=44, height=44),
+                ft.Text("Carib", size=15, weight=ft.FontWeight.W_600,
+                        color=primary),
+                ft.ProgressRing(width=18, height=18, stroke_width=2,
+                                color=accent, bgcolor=track),
+                ft.Text("Ouverture de votre espace…", size=11,
+                        color=muted),
+            ],
+        ),
+    )
+    page.add(boot)
+    page.update()
+    boot.opacity = 1.0
+    page.update()
+    startup_probe.mark("1b_ecran_carib")
+
+
 if __name__ == "__main__":
-    ft.run(main, assets_dir=_assets_dir())
+    ft.run(main, before_main=boot_screen, assets_dir=_assets_dir())
