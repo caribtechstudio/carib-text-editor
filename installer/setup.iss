@@ -9,7 +9,7 @@
 ; c'est « Carib » seul, qui sert au dossier et aux noms de fichiers.
 #define AppName        "Carib Text Editor"
 #define AppShortName   "Carib"
-#define AppVersion     "0.14.0"
+#define AppVersion     "0.14.1"
 #define AppPublisher   "Arnaud"
 #define AppExeName     "Carib.exe"
 ; Dossier produit par PyInstaller en mode dossier (voir Carib.spec).

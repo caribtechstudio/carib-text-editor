@@ -21,7 +21,7 @@ APP_FULL_NAME = "Carib Text Editor"
 #: `tools/sync_version.py` recopie cette valeur dans `pyproject.toml` et
 #: `installer/setup.iss` ; `build.bat` l'appelle avant chaque compilation.
 #: Ne modifiez la version qu'ici.
-APP_VERSION = "0.14.0"
+APP_VERSION = "0.14.1"
 
 # ---------------------------------------------------------------------------
 # Distribution

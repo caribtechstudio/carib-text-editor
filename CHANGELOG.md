@@ -5,6 +5,15 @@ Carib suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.14.1] — 2026-08-15
+
+### Corrections
+
+- Boîte d'options : les boutons (dont « Rechercher une mise à jour ») ne
+  remplissaient que la largeur de leur icône et de leur texte, laissant une
+  bonne partie de leur ligne insensible au clic. Ils occupent maintenant
+  toute la largeur de la boîte de dialogue.
+
 ## [0.14.0] — 2026-08-15
 
 Première version préparée pour une distribution grand public. L'essentiel du
