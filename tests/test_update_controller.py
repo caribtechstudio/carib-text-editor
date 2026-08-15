@@ -22,16 +22,34 @@ from models import updater
 # ---------------------------------------------------------------------------
 
 class FakePage:
-    """Page Flet minimale. `run_thread` execute tout de suite."""
+    """Page Flet minimale.
+
+    `run_thread` **differe** le rappel au lieu de l'executer sur place. C'est
+    ce que fait le vrai Flet : il marshale vers le thread d'interface, donc le
+    rappel s'execute plus tard. Une doublure qui appellerait tout de suite
+    masquerait une classe entiere de bogues — notamment le fait qu'un
+    `except ... as exc` **supprime `exc` a la sortie du bloc**, ce qui casse
+    toute lambda qui l'a capture pour plus tard.
+    """
 
     def __init__(self):
         self.dialogs = []
         self.urls = []
         self.tasks = []
         self.height = 820
+        self.pending_ui = []
+        self.defer_ui = False
 
     def run_thread(self, fn):
-        fn()
+        if self.defer_ui:
+            self.pending_ui.append(fn)
+        else:
+            fn()
+
+    def drain(self):
+        """Rejoue les rappels d'interface en attente."""
+        while self.pending_ui:
+            self.pending_ui.pop(0)()
 
     def run_task(self, fn, *a, **kw):
         self.tasks.append(fn)
@@ -71,35 +89,47 @@ def _colour(light, dark):
     return light
 
 
-class _SyncThread:
-    """Thread qui s'execute a `start()`, sur le thread appelant.
+def _make_thread_double(page):
+    """Fabrique une doublure de `threading.Thread` liee a cette page.
 
-    Le contrôleur lance ses appels reseau dans un thread demon : sans cette
-    doublure, chaque assertion courrait apres lui et le resultat dependrait
-    de l'ordonnanceur. On teste ici l'enchainement, pas la concurrence.
+    Elle execute la cible tout de suite — pour que les tests restent
+    deterministes — puis **rejoue les rappels d'interface une fois la cible
+    entierement sortie**. C'est l'ordre reel : le travail reseau finit, ses
+    blocs `except` se referment, et seulement ensuite l'interface est
+    notifiee. Reproduire ce decalage est ce qui permet d'attraper les
+    variables capturees qui n'existent plus au moment de l'appel.
     """
 
-    def __init__(self, target=None, name=None, daemon=None, args=(), kwargs=None):
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs or {}
-        self.name = name
+    class _DeferredThread:
+        def __init__(self, target=None, name=None, daemon=None,
+                     args=(), kwargs=None):
+            self._target = target
+            self._args = args
+            self._kwargs = kwargs or {}
+            self.name = name
 
-    def start(self):
-        if self._target:
-            self._target(*self._args, **self._kwargs)
+        def start(self):
+            page.defer_ui = True
+            try:
+                if self._target:
+                    self._target(*self._args, **self._kwargs)
+            finally:
+                page.defer_ui = False
+            page.drain()
 
-    def join(self, timeout=None):
-        pass
+        def join(self, timeout=None):
+            pass
+
+    return _DeferredThread
 
 
 @pytest.fixture
 def ctrl(tmp_path, monkeypatch):
     monkeypatch.setattr(updater, "_DATA_DIR", str(tmp_path))
     monkeypatch.setattr(updater, "_PREFS_FILE", str(tmp_path / "update.json"))
-    monkeypatch.setattr("controllers.update_controller.threading.Thread",
-                        _SyncThread)
     page, svc, app = FakePage(), FakeServices(), FakeApp()
+    monkeypatch.setattr("controllers.update_controller.threading.Thread",
+                        _make_thread_double(page))
     controller = UpdateController(page, _colour, svc, app)
     controller.page, controller.svc, controller.app = page, svc, app
     return controller
@@ -295,4 +325,43 @@ def test_un_seul_telechargement_a_la_fois(ctrl, monkeypatch):
 def test_sans_depot_configure_rien_ne_se_passe(ctrl, monkeypatch):
     monkeypatch.setattr(updater, "GITHUB_REPO", "")
     ctrl.maybe_check_on_startup()
+    assert ctrl.page.dialogs == []
+
+
+# ---------------------------------------------------------------------------
+# Regression : exceptions capturees puis utilisees en differe
+# ---------------------------------------------------------------------------
+
+def test_l_erreur_survit_au_bloc_except(ctrl, monkeypatch):
+    """Une exception doit rester exploitable APRES la sortie du bloc `except`.
+
+    Regression : les gestionnaires passaient `lambda: ...(exc)` a `_on_ui`,
+    qui differe l'appel vers le thread d'interface. Or Python **supprime le
+    nom lie par `except ... as exc`** en sortie de bloc : la lambda levait
+    alors `NameError` au lieu d'afficher l'erreur. Le defaut n'apparaissait
+    qu'en execution reelle — il a ete trouve dans le journal d'un binaire
+    compile, pas par les tests, qui rejouaient le rappel trop tot.
+    """
+    def boom(*a, **kw):
+        raise updater.UpdateError("Impossible de contacter GitHub.", "detail")
+
+    monkeypatch.setattr(updater, "check", boom)
+    ctrl.set_enabled(True)
+
+    ctrl.check_now()                      # ne doit pas lever
+
+    assert any("GitHub" in s for s in ctrl.svc.snacks), \
+        "le message d'erreur n'est pas parvenu jusqu'a l'interface"
+
+
+def test_l_erreur_de_telechargement_survit_au_bloc_except(ctrl, monkeypatch):
+    """Même régression, sur le chemin du téléchargement."""
+    def boom(info, **kw):
+        raise updater.UpdateError("L'empreinte ne correspond pas.", "detail")
+
+    monkeypatch.setattr(updater, "download", boom)
+
+    ctrl._start_download(_info())         # ne doit pas lever
+
+    assert any("empreinte" in s.lower() for s in ctrl.svc.snacks)
     assert ctrl.page.dialogs == []

@@ -106,15 +106,21 @@ class UpdateController:
         def work():
             try:
                 info = updater.check(APP_VERSION)
+            # Attention : `except ... as exc` **supprime `exc` à la sortie du
+            # bloc**. Les rappels d'interface étant différés vers un autre
+            # thread, une lambda qui capturerait `exc` s'exécuterait après sa
+            # disparition et lèverait un NameError. On rebinde donc l'erreur
+            # sur un nom qui survit au bloc.
             except updater.UpdateError as exc:
-                log.warning("Recherche de mise a jour echouee : %s", exc.detail)
-                self._on_ui(lambda: self._check_failed(exc, manual))
+                error = exc
+                log.warning("Recherche de mise a jour echouee : %s", error.detail)
+                self._on_ui(lambda: self._check_failed(error, manual))
                 return
             except Exception as exc:                       # filet de sécurité
+                error = updater.UpdateError(
+                    "Recherche de mise à jour impossible.", str(exc))
                 log.exception("Erreur inattendue pendant la recherche.")
-                self._on_ui(lambda: self._check_failed(
-                    updater.UpdateError("Recherche de mise à jour impossible.",
-                                        str(exc)), manual))
+                self._on_ui(lambda: self._check_failed(error, manual))
                 return
 
             # La date n'est mise à jour que sur une vérification réussie :
@@ -198,15 +204,19 @@ class UpdateController:
                 self._on_ui(lambda: self._download_ended(
                     None, "Mise à jour annulée."))
                 return
+            # Même précaution que dans `_check` : le message est extrait ici,
+            # tant que l'exception existe encore.
             except updater.UpdateError as exc:
-                log.error("Telechargement echoue : %s", exc.detail)
+                message, detail = exc.user_message, exc.detail
+                log.error("Telechargement echoue : %s", detail)
                 self._on_ui(lambda: self._download_ended(
-                    None, exc.user_message, error=True))
+                    None, message, error=True))
                 return
             except Exception as exc:
+                message = f"Le téléchargement a échoué : {exc}"
                 log.exception("Erreur inattendue pendant le telechargement.")
                 self._on_ui(lambda: self._download_ended(
-                    None, f"Le téléchargement a échoué : {exc}", error=True))
+                    None, message, error=True))
                 return
 
             self._on_ui(lambda: self._download_ended(path, ""))

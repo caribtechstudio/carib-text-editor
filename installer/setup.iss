@@ -64,7 +64,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon";    Description: "Créer un raccourci sur le Bureau";     GroupDescription: "Raccourcis :"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "Épingler dans la barre des tâches";   GroupDescription: "Raccourcis :"; Flags: unchecked; OnlyBelowVersion: 6.1
 Name: "fileassoc";      Description: "Associer les fichiers .txt, .md et .log à Carib"; GroupDescription: "Association de fichiers :";
 
 [Files]
