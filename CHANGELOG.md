@@ -5,6 +5,15 @@ Carib suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.14.2] — 2026-08-15
+
+### Corrections
+
+- Boîte d'options : le contenu débordait de la boîte de dialogue sans
+  pouvoir défiler, si bien que le bouton « Fermer » se superposait au
+  dernier élément (« Rechercher une mise à jour »), le rendant impossible à
+  cliquer. La liste défile désormais correctement dans une hauteur fixe.
+
 ## [0.14.1] — 2026-08-15
 
 ### Corrections

@@ -22,8 +22,9 @@ def show_options(page, c, dark, callbacks):
     dlg = ft.AlertDialog(
         title=ft.Text("Options", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
         content=ft.Container(
-            width=380,
-            content=ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH, controls=[
+            width=380, height=480,
+            content=ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO,
+                              horizontal_alignment=ft.CrossAxisAlignment.STRETCH, controls=[
                 dlg_btn("Mode Texte", "pen-field", c,
                         lambda e: (page.pop_dialog(), callbacks["set_mode"](MODE_TEXT))),
                 dlg_btn("Mode Calcul", "calculator-simple", c,
