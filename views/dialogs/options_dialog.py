@@ -14,8 +14,10 @@ def show_options(page, c, dark, callbacks):
     Affiche la boîte d'options.
 
     callbacks attendus :
-        set_mode(mode), toggle_theme(), toggle_auto_save(),
-        is_auto_save(), show_help(), show_info(), show_credits()
+        set_mode(mode), toggle_theme(), toggle_auto_save(), is_auto_save(),
+        toggle_autocomplete(), is_autocomplete(), show_model_manager(),
+        show_privacy(), check_updates(),
+        show_help(), show_info(), show_credits()
     """
     dlg = ft.AlertDialog(
         title=ft.Text("Options", size=16, font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
@@ -94,6 +96,11 @@ def show_options(page, c, dark, callbacks):
                 # Gestion des modeles IA
                 dlg_btn("Modeles IA", "user-robot", c,
                         lambda e: (page.pop_dialog(), callbacks["show_model_manager"]())),
+                ft.Divider(color=c(T.L_BORDER, T.D_BORDER)),
+                dlg_btn("Confidentialité et données", "shield-trust", c,
+                        lambda e: (page.pop_dialog(), callbacks["show_privacy"]())),
+                dlg_btn("Rechercher une mise à jour", "cloud-download-alt", c,
+                        lambda e: (page.pop_dialog(), callbacks["check_updates"]())),
                 ft.Divider(color=c(T.L_BORDER, T.D_BORDER)),
                 dlg_btn("Aide", "interrogation", c,
                         lambda e: (page.pop_dialog(), callbacks["show_help"]())),

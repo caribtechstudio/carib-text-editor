@@ -3,7 +3,7 @@ views/dialogs/ai_setup_dialog.py — Connexion et réglage des moteurs IA.
 
 Principes d'expérience retenus :
 
-  * **Rien n'est bloquant.** Glyph fonctionne entièrement sans IA ; le
+  * **Rien n'est bloquant.** Carib fonctionne entièrement sans IA ; le
     dialogue le dit explicitement et propose « Plus tard ».
   * **Trente secondes pour se connecter.** Coller une clé, cliquer sur
     « Tester », voir une coche verte. Aucun téléchargement de plusieurs
@@ -135,7 +135,7 @@ def _build(page, c, manager, ui, refresh, notify) -> list:
     configured = set(manager.configured_providers())
 
     controls.append(ft.Text(
-        "Glyph fonctionne parfaitement sans IA. Connectez un service "
+        "Carib fonctionne parfaitement sans IA. Connectez un service "
         "uniquement si vous en voulez les fonctions d'écriture.",
         size=12, font_family=UI_FONT, color=c(T.L_TERTIARY, T.D_TERTIARY),
     ))
@@ -364,7 +364,7 @@ def _ollama_form(page, c, manager, ui, refresh, notify) -> ft.Control:
         rows.append(_small_btn(c, "Démarrer Ollama", start, primary=True))
 
     if not installed:
-        # Volontairement un lien, pas une installation automatique : Glyph
+        # Volontairement un lien, pas une installation automatique : Carib
         # n'exécute aucun script téléchargé sur la machine de l'utilisateur.
         rows.append(ft.Row(spacing=6, controls=[
             ft.Text("Télécharger :", size=11, font_family=UI_FONT,
@@ -423,6 +423,23 @@ def _settings_section(page, c, manager, ui, refresh, notify) -> list:
         manager.privacy_mode, toggle_privacy,
     ))
 
+    # --- Consentement d'envoi en ligne ---
+    # Le RGPD exige que retirer son consentement soit aussi simple que de le
+    # donner : la bascule est ici, à côté de celle qui l'a rendu superflu.
+    def toggle_consent(e):
+        manager.cloud_consent = bool(e.control.value)
+        manager.save()
+        refresh()
+        notify()
+
+    controls.append(_switch_row(
+        c, "cloud-upload-alt", "Autoriser l'envoi de texte en ligne",
+        ("Accordé. Désactivez pour que Carib redemande votre accord."
+         if manager.cloud_consent else
+         "Non accordé. Carib demandera votre accord avant le premier envoi."),
+        manager.cloud_consent, toggle_consent,
+    ))
+
     # --- Repli local ---
     def toggle_fallback(e):
         manager.fallback_local = bool(e.control.value)
@@ -455,7 +472,7 @@ def _settings_section(page, c, manager, ui, refresh, notify) -> list:
             ]),
             ft.TextField(
                 value=f"{manager.budget_alert:.2f}", width=80, text_size=12,
-                suffix=ft.Text("€", size=12), border_radius=6,
+                suffix=ft.Text("$", size=12), border_radius=6,
                 content_padding=ft.Padding(8, 6, 4, 6),
                 border_color=c(T.L_BORDER, T.D_BORDER),
                 on_blur=set_budget, on_submit=set_budget),
@@ -467,7 +484,7 @@ def _settings_section(page, c, manager, ui, refresh, notify) -> list:
     controls.append(ft.Row(spacing=10, controls=[
         ft.Text(
             f"Cette session : {usage.total_tokens:,} jetons  ·  "
-            f"≈ {manager.session_cost:.3f} €".replace(",", " "),
+            f"≈ {manager.session_cost:.3f} $".replace(",", " "),
             size=11, font_family=UI_FONT, expand=True,
             color=c(T.L_TERTIARY, T.D_TERTIARY)),
         _small_btn(c, "Réinitialiser",
@@ -615,14 +632,30 @@ def _switch_row(c, icon, title, subtitle, value, on_change) -> ft.Control:
 # Consentement cloud
 # ---------------------------------------------------------------------------
 
+#: Politique de confidentialité de chaque fournisseur. Un consentement éclairé
+#: suppose de pouvoir lire les conditions de celui qui recevra le texte.
+_PRIVACY_URLS = {
+    "openai": "https://openai.com/policies/privacy-policy",
+    "anthropic": "https://www.anthropic.com/legal/privacy",
+    "gemini": "https://policies.google.com/privacy",
+}
+
+
 def show_cloud_consent(page, c, manager, on_accept):
-    """Demande explicite avant le premier envoi de texte vers un service distant."""
+    """Demande explicite avant le premier envoi de texte vers un service distant.
+
+    Un consentement RGPD valable est spécifique et éclairé : il faut nommer le
+    destinataire, énumérer ce qui part, dire ce qui ne part pas, et donner
+    accès à la politique du tiers. Un simple « J'accepte » ne suffirait pas.
+    """
     from models.llm.registry import PROVIDERS as _P
 
     provider, _ = manager.resolve("edit")
-    label = _P[provider].label if provider in _P else "un service en ligne"
+    cfg = _P.get(provider)
+    label = cfg.label if cfg else "un service en ligne"
+    policy_url = _PRIVACY_URLS.get(provider, "")
 
-    remember = ft.Checkbox(value=True, label="Ne plus demander",
+    remember = ft.Checkbox(value=True, label="Ne plus demander pour ce service",
                            active_color=c(T.L_ACCENT, T.D_ACCENT))
 
     def accept(e):
@@ -632,30 +665,68 @@ def show_cloud_consent(page, c, manager, on_accept):
         page.pop_dialog()
         on_accept()
 
+    def bullet(icon, text, color=None):
+        return ft.Row(spacing=8, vertical_alignment=ft.CrossAxisAlignment.START,
+                      controls=[
+                          svg_icon(icon, size=ICON_SM,
+                                   color=color or c(T.L_MUTED, T.D_MUTED)),
+                          ft.Text(text, size=11, expand=True, font_family=UI_FONT,
+                                  color=c(T.L_SECONDARY, T.D_SECONDARY)),
+                      ])
+
+    details = [
+        ft.Text(f"Pour effectuer cette action, Carib doit transmettre du texte "
+                f"à {label}. Ce texte quitte votre ordinateur.",
+                size=13, color=c(T.L_SECONDARY, T.D_SECONDARY)),
+
+        ft.Container(
+            padding=ft.Padding(12, 10, 12, 10), border_radius=8,
+            bgcolor=c(T.L_HOVER, T.D_HOVER),
+            content=ft.Column(spacing=7, tight=True, controls=[
+                ft.Text("Ce qui est envoyé", size=11,
+                        font_family=UI_FONT_STRONG,
+                        color=c(T.L_TERTIARY, T.D_TERTIARY)),
+                bullet("arrow-circle-right",
+                       "Le texte sélectionné — ou le document entier si rien "
+                       "n'est sélectionné."),
+                bullet("arrow-circle-right",
+                       "L'instruction correspondant à l'action demandée."),
+                ft.Text("Ce qui n'est jamais envoyé", size=11,
+                        font_family=UI_FONT_STRONG,
+                        color=c(T.L_TERTIARY, T.D_TERTIARY)),
+                bullet("minus-circle",
+                       "Le nom du fichier, son chemin, vos autres onglets, "
+                       "ni aucune information sur votre machine."),
+            ])),
+
+        bullet("info",
+               f"Une fois transmis, le texte est traité par {label} selon ses "
+               "propres conditions et sa durée de conservation. Carib n'y a "
+               "aucun accès."),
+        bullet("shield-check",
+               "Pour ne jamais rien envoyer : activez le mode confidentiel. "
+               "Tout passe alors par Ollama, sur votre machine.",
+               c(T.L_ACCENT, T.D_ACCENT)),
+        bullet("rotate-left",
+               "Votre accord est révocable à tout moment dans "
+               "Options ▸ Confidentialité."),
+        remember,
+    ]
+
+    actions = [ft.TextButton("Annuler", on_click=lambda e: page.pop_dialog())]
+    if policy_url:
+        actions.append(ft.TextButton(f"Politique {label}", url=policy_url))
+    actions.append(ft.Button("Envoyer", bgcolor=c(T.L_ACCENT, T.D_ACCENT),
+                             color="#FFFFFF", on_click=accept))
+
     dlg = ft.AlertDialog(
         modal=True,
-        title=ft.Text("Envoyer ce texte à " + label + " ?", size=16,
+        title=ft.Text(f"Envoyer ce texte à {label} ?", size=16,
                       font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
-        content=ft.Container(width=440, content=ft.Column(spacing=12, tight=True, controls=[
-            ft.Text(
-                f"Le texte sélectionné sera transmis à {label} pour être traité. "
-                "Il quitte donc votre ordinateur.",
-                size=13, color=c(T.L_SECONDARY, T.D_SECONDARY)),
-            ft.Row(spacing=8, controls=[
-                svg_icon("shield-check", size=ICON_SM, color=c(T.L_MUTED, T.D_MUTED)),
-                ft.Text(
-                    "Pour un traitement 100 % local, activez le mode "
-                    "confidentiel dans les options IA.",
-                    size=11, expand=True, font_family=UI_FONT,
-                    color=c(T.L_MUTED, T.D_MUTED)),
-            ]),
-            remember,
-        ])),
-        actions=[
-            ft.TextButton("Annuler", on_click=lambda e: page.pop_dialog()),
-            ft.Button("Envoyer", bgcolor=c(T.L_ACCENT, T.D_ACCENT),
-                      color="#FFFFFF", on_click=accept),
-        ],
+        content=ft.Container(width=500, content=ft.Column(
+            spacing=12, tight=True, scroll=ft.ScrollMode.AUTO,
+            controls=details)),
+        actions=actions,
         actions_alignment=ft.MainAxisAlignment.END,
     )
     page.show_dialog(dlg)

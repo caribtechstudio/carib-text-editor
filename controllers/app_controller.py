@@ -14,7 +14,7 @@ Démarrage en deux temps
 La coquille de l'application (fenêtre, éditeur vide, barre latérale) est
 peinte **immédiatement**, puis la restauration de session, le serveur IPC et
 le dictionnaire orthographique sont lancés une fois la première image
-affichée. L'utilisateur voit Glyph en quelques centaines de millisecondes au
+affichée. L'utilisateur voit Carib en quelques centaines de millisecondes au
 lieu d'attendre la relecture de tous ses onglets sur le disque.
 """
 
@@ -23,7 +23,7 @@ import threading
 
 import flet as ft
 
-from core.constants import (APP_NAME, APP_VERSION, EDITOR_FONT, ICON_XS, MODE_READ,
+from core.constants import (APP_FULL_NAME, APP_NAME, APP_VERSION, EDITOR_FONT, ICON_XS, MODE_READ,
                        TOOLBAR_HEIGHT, UI_FONT, UI_FONT_STRONG, resource_path,
                        svg_icon)
 from models.document import Document
@@ -66,6 +66,7 @@ from controllers.keyboard_controller import KeyboardController
 from controllers.search_controller import SearchController
 from controllers.session_controller import SessionController
 from controllers.tab_controller import TabController
+from controllers.update_controller import UpdateController
 from controllers.view_controller import ViewController
 from controllers.voice_controller import VoiceController
 
@@ -148,7 +149,7 @@ class AppController:
     # ==================================================================
     def _configure_page(self):
         p = self.page
-        p.title = f"{APP_NAME} — v{APP_VERSION}"
+        p.title = f"{APP_FULL_NAME} — v{APP_VERSION}"
         p.theme_mode = ft.ThemeMode.LIGHT
         p.padding = 0
         p.spacing = 0
@@ -170,6 +171,18 @@ class AppController:
 
     async def _deferred_start(self):
         """Travaux différés, exécutés après le premier rendu."""
+        # Le journal existe déjà (installé dans carib.py) ; on lui rattache
+        # maintenant la boucle asyncio de Flet et le dialogue d'erreur, qui
+        # ont tous deux besoin de la page.
+        import asyncio
+
+        from core import logging_setup
+        logging_setup.set_ui_reporter(self._report_crash)
+        try:
+            logging_setup.install_asyncio_handler(asyncio.get_running_loop())
+        except RuntimeError:
+            pass
+
         restored = self._apply_session_tabs()
         self.session_ctrl.release()
 
@@ -203,6 +216,34 @@ class AppController:
 
         # Une session précédente s'est-elle terminée anormalement ?
         self._offer_recovery_if_needed()
+
+        # Mise à jour en dernier : la proposition ne doit jamais passer
+        # devant une récupération de documents.
+        self.update_ctrl.maybe_check_on_startup()
+
+    # ------------------------------------------------------------------
+    # Rapport d'erreur
+    # ------------------------------------------------------------------
+    def _report_crash(self, title: str, message: str, log_file: str):
+        """Affiche une erreur inattendue — appelé depuis n'importe quel thread.
+
+        Une seule fenêtre par session : `logging_setup` s'en assure. Le but
+        n'est pas d'excuser le défaut, mais de donner à l'utilisateur de quoi
+        le signaler utilement.
+        """
+        def show():
+            from views.dialogs.error_dialog import show_crash_report
+            try:
+                show_crash_report(self.page, self.c, title, message, log_file,
+                                  clipboard=self.clipboard)
+            except Exception:
+                # Si même le dialogue échoue, le journal reste la trace.
+                pass
+
+        try:
+            self.page.run_thread(show)
+        except Exception:
+            pass
 
     # ==================================================================
     # Construction
@@ -392,6 +433,7 @@ class AppController:
             self.show_snack, self.rebuild, self.update_status)
         self.dialog_ctrl = DialogController(
             page, self.state, self.c, self.tab_ctrl, self.file_picker, svc, self)
+        self.update_ctrl = UpdateController(page, self.c, svc, self)
         self.ux_ctrl = AIUXController(
             page, self.state, self.editor, self.tab_ctrl, self.ai_ctrl,
             self.rebuild, self.show_snack, self._get_selection,
@@ -1078,7 +1120,7 @@ class AppController:
         self.state.stay_resident = not self.state.stay_resident
         if self.state.stay_resident:
             if self._start_tray():
-                self.show_snack("Glyph restera actif en arrière-plan — "
+                self.show_snack("Carib restera actif en arrière-plan — "
                                 "les lancements suivants seront instantanés.")
             else:
                 # Sans icône de notification, l'application deviendrait un
@@ -1090,7 +1132,7 @@ class AppController:
             if self._tray:
                 self._tray.stop()
                 self._tray = None
-            self.show_snack("Glyph quittera complètement à la fermeture.")
+            self.show_snack("Carib quittera complètement à la fermeture.")
         self._save_session()
 
     # ==================================================================

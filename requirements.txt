@@ -1,13 +1,27 @@
+# Carib — dépendances d'exécution
+#
+# Les versions sont **épinglées**. Un éditeur de texte distribué en binaire
+# doit pouvoir être reconstruit à l'identique : sans épinglage, un build fait
+# dans six mois n'embarque plus le même logiciel que celui qui a été testé.
+#
+# Mise à jour d'une dépendance = changement de version ici, puis
+# `python -m pytest tests/` et un build complet avant de valider.
+#
+# Installation :  pip install -r requirements.txt
+
 # --- Obligatoire ---
-flet>=0.84.0
-requests            # couche LLM (ChatGPT, Claude, Gemini, Ollama)
+flet==0.84.0
+requests==2.33.1
 
-# --- Optionnel : les fonctions concernées se désactivent proprement si absent ---
-pyspellchecker      # correction orthographique locale (F6)
-pyttsx3             # lecture à voix haute (F3)
-SpeechRecognition   # dictée Google (F4)
-# pyautogui        # retiré : la dictée Windows passe désormais par ctypes
+# --- Optionnel ---
+# Les fonctions concernées se désactivent proprement si le paquet est absent.
+pyspellchecker==0.9.0   # correction orthographique locale (F6)
+pyttsx3==2.99           # lecture à voix haute (F3)
 
-# --- Développement ---
-# pytest            # suite de tests : python -m pytest tests/
-# pyinstaller       # build : build.bat
+# --- Retiré en 0.14.0 -------------------------------------------------------
+# SpeechRecognition   La dictée passait par `recognize_google`, qui envoyait
+#                     l'audio du microphone à Google sans consentement, via
+#                     une clé de démonstration partagée non utilisable en
+#                     production. La dictée passe désormais par celle de
+#                     Windows (Win+H), sans dépendance ni accès micro.
+# pyautogui           Remplacé par un appel ctypes direct (~30 Mo en moins).

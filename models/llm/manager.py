@@ -8,7 +8,7 @@ Le reste de l'application ne parle qu'a cet objet. Il porte :
   * le repli automatique sur Ollama quand le cloud est indisponible ;
   * le suivi de consommation, pour afficher un cout a l'utilisateur.
 
-La configuration vit dans `~/.glyph/llm.json`. Les cles API, elles, ne
+La configuration vit dans `~/.carib/llm.json`. Les cles API, elles, ne
 transitent jamais par ce fichier (voir credentials.py).
 """
 
@@ -24,7 +24,7 @@ from models.llm.base import (
 from models.llm.client import CancelToken, OpenAICompatClient
 from models.llm.registry import DEFAULT_PROVIDER, PROVIDERS, is_local
 
-_DATA_DIR = os.path.join(os.path.expanduser("~"), ".glyph")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".carib")
 _CONFIG_FILE = os.path.join(_DATA_DIR, "llm.json")
 _MODELS_CACHE = os.path.join(_DATA_DIR, "llm_models.json")
 
@@ -87,7 +87,8 @@ class LLMManager:
         self.fallback_local: bool = True
         #: Modele choisi par fournisseur et par niveau : {provider: {tier: id}}.
         self.models: dict[str, dict[str, str]] = {}
-        #: Alerte de depense, en euros. 0 = desactivee.
+        #: Alerte de depense, en **dollars** — meme devise que `price_hint`
+        #: et que la facturation des fournisseurs. 0 = desactivee.
         self.budget_alert: float = 5.0
 
         # --- Consommation de la session ---
@@ -371,7 +372,12 @@ class LLMManager:
 
     @staticmethod
     def estimate_cost(provider: str, usage: Usage) -> float:
-        """Cout indicatif en euros. Ordre de grandeur, pas une facture."""
+        """Cout indicatif en **dollars**. Ordre de grandeur, pas une facture.
+
+        Les tarifs de `price_hint` sont ceux publies par les fournisseurs,
+        qui facturent tous en USD. Les afficher en euros donnait un montant
+        faux ; on garde donc la devise d'origine de bout en bout.
+        """
         cfg = PROVIDERS.get(provider)
         if not cfg:
             return 0.0
@@ -380,7 +386,7 @@ class LLMManager:
                 + usage.completion_tokens * price_out) / 1_000_000
 
     def status_label(self) -> str:
-        """Texte compact pour la barre d'etat : « ChatGPT · 0,03 € »."""
+        """Texte compact pour la barre d'etat : « ChatGPT · 0,03 $ »."""
         provider, model = self.resolve("edit")
         if not provider:
             return "IA non configurée"
@@ -390,8 +396,8 @@ class LLMManager:
                 return f"{cfg.label} · document privé"
             return f"{cfg.label} · local"
         if self.session_cost >= 0.01:
-            return f"{cfg.label} · {self.session_cost:.2f} €"
-        return f"{cfg.label} · < 0,01 €"
+            return f"{cfg.label} · {self.session_cost:.2f} $"
+        return f"{cfg.label} · < 0,01 $"
 
     def over_budget(self) -> bool:
         return self.budget_alert > 0 and self.session_cost >= self.budget_alert

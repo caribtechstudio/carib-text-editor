@@ -1,7 +1,7 @@
 """
 Tests de l'icône de zone de notification.
 
-L'icône conditionne le mode résident : sans elle, Glyph deviendrait un
+L'icône conditionne le mode résident : sans elle, Carib deviendrait un
 processus invisible que l'utilisateur ne pourrait ni retrouver ni arrêter.
 `AppController` refuse donc d'activer le mode si `start()` échoue — c'est ce
 contrat qui est vérifié ici.
@@ -30,7 +30,7 @@ def test_degradation_hors_windows(monkeypatch):
 
 @windows_only
 def test_creation_et_retrait():
-    icon = TrayIcon("Glyph — test", None)
+    icon = TrayIcon("Carib — test", None)
     try:
         assert icon.start() is True
         assert icon.active
@@ -41,7 +41,7 @@ def test_creation_et_retrait():
 
 @windows_only
 def test_start_est_idempotent():
-    icon = TrayIcon("Glyph — test", None)
+    icon = TrayIcon("Carib — test", None)
     try:
         assert icon.start() is True
         assert icon.start() is True       # second appel : sans effet
@@ -53,7 +53,7 @@ def test_start_est_idempotent():
 @windows_only
 def test_icone_absente_utilise_le_repli():
     """Un chemin d'icône invalide ne doit pas empêcher l'affichage."""
-    icon = TrayIcon("Glyph — test", "C:/chemin/qui/nexiste/pas.ico")
+    icon = TrayIcon("Carib — test", "C:/chemin/qui/nexiste/pas.ico")
     try:
         assert icon.start() is True
     finally:
@@ -63,7 +63,7 @@ def test_icone_absente_utilise_le_repli():
 
 @windows_only
 def test_stop_sans_start_ne_leve_pas():
-    TrayIcon("Glyph", None).stop()
+    TrayIcon("Carib", None).stop()
 
 
 def test_une_exception_dans_un_rappel_est_absorbee():

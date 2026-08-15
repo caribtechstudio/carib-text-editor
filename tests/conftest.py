@@ -1,4 +1,4 @@
-"""Rend les modules de Glyph importables depuis les tests."""
+"""Rend les modules de Carib importables depuis les tests."""
 
 import sys
 from pathlib import Path

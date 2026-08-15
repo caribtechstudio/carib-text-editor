@@ -5,10 +5,10 @@ Ajouter un fournisseur = ajouter une entree ici. Aucune autre partie du code
 ne connait les specificites d'OpenAI, d'Anthropic, de Google ou d'Ollama.
 
 Note importante sur les modeles : la liste `fallback_models` n'est qu'un
-filet de securite hors ligne. En fonctionnement normal, Glyph interroge
+filet de securite hors ligne. En fonctionnement normal, Carib interroge
 `GET {base_url}/models` et affiche ce que le compte de l'utilisateur peut
 reellement utiliser. C'est ce qui evite qu'une liste codee en dur ne
-perime — le defaut de l'ancien catalogue Ollama de Glyph.
+perime — le defaut de l'ancien catalogue Ollama de Carib.
 """
 
 from dataclasses import dataclass, field
@@ -39,8 +39,11 @@ class ProviderConfig:
     fallback_models: tuple = ()
     #: Modeles a masquer (embeddings, audio, images — inutiles ici).
     hide_patterns: tuple = ()
-    #: Cout indicatif en euros par million de jetons (entree, sortie).
-    #: Sert uniquement a afficher un ordre de grandeur a l'utilisateur.
+    #: Cout indicatif en **dollars americains** par million de jetons
+    #: (entree, sortie) : c'est l'unite dans laquelle les quatre fournisseurs
+    #: publient leurs tarifs, et la devise dans laquelle ils facturent.
+    #: Afficher ces valeurs avec un « € » revenait a annoncer un prix faux
+    #: d'environ 8 %. Sert uniquement a donner un ordre de grandeur.
     price_hint: tuple = (0.0, 0.0)
 
 

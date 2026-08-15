@@ -1,21 +1,37 @@
 """
-models/voice_manager.py — Synthèse vocale et reconnaissance vocale.
+models/voice_manager.py — Synthèse vocale et dictée.
 
-Les imports sont **différés**. `pyttsx3` tire `comtypes`/`pywin32` et
-`speech_recognition` tire de quoi manipuler l'audio : au niveau module, ces
-deux imports coûtaient plusieurs centaines de millisecondes **à chaque
-démarrage**, alors que la plupart des sessions n'utilisent jamais la voix.
+Les imports sont **différés**. `pyttsx3` tire `comtypes`/`pywin32` : au
+niveau module, cet import coûtait plusieurs centaines de millisecondes **à
+chaque démarrage**, alors que la plupart des sessions n'utilisent jamais la
+voix. La disponibilité est donc évaluée à la demande, puis mémorisée.
 
-Les disponibilités sont donc évaluées à la demande, puis mémorisées.
+Note sur la dictée
+------------------
+Jusqu'à la 0.13.2, la dictée passait par `speech_recognition.recognize_google`.
+Deux raisons de l'avoir supprimée en 0.14.0 :
+
+  * **Confidentialité.** L'audio du microphone partait chez un tiers sans
+    qu'aucun consentement ne soit demandé — le garde-fou de la couche IA ne
+    couvrait que le texte, et le mode confidentiel ne bloquait pas cet envoi.
+  * **Licence.** Sans argument `key`, cette fonction utilise une clé de
+    démonstration Google partagée, explicitement réservée aux tests et
+    révocable sans préavis. Elle n'est pas utilisable en production.
+
+La dictée passe désormais exclusivement par celle de Windows (Win+H), qui
+s'exécute sous le contrôle et les réglages de l'utilisateur. Carib n'accède
+jamais lui-même au microphone.
 """
 
 import ctypes
+import logging
 import sys
 import threading
 
-#: Cache des vérifications de disponibilité : None = pas encore testé.
+log = logging.getLogger(__name__)
+
+#: Cache de la vérification de disponibilité : None = pas encore testé.
 _tts_available: bool | None = None
-_sr_available: bool | None = None
 
 
 def tts_available() -> bool:
@@ -30,24 +46,11 @@ def tts_available() -> bool:
     return _tts_available
 
 
-def sr_available() -> bool:
-    """speech_recognition est-il installé ?"""
-    global _sr_available
-    if _sr_available is None:
-        try:
-            import speech_recognition  # noqa: F401
-            _sr_available = True
-        except ImportError:
-            _sr_available = False
-    return _sr_available
-
-
 class VoiceManager:
-    """Synthèse et reconnaissance vocales, toujours hors du thread d'interface."""
+    """Synthèse vocale et dictée, toujours hors du thread d'interface."""
 
     def __init__(self):
         self.tts_on = False
-        self.voice_on = False
 
     # ------------------------------------------------------------------
     # Text-to-speech
@@ -76,40 +79,15 @@ class VoiceManager:
         threading.Thread(target=speak, daemon=True).start()
 
     # ------------------------------------------------------------------
-    # Speech-to-text
-    # ------------------------------------------------------------------
-    def listen_speech(self, on_result=None, on_error=None) -> None:
-        """Écoute le micro et transcrit dans un thread."""
-        if not sr_available():
-            if on_error:
-                on_error("speech_recognition n'est pas installé.")
-            return
-
-        self.voice_on = True
-
-        def listen():
-            try:
-                import speech_recognition as sr
-                recognizer = sr.Recognizer()
-                with sr.Microphone() as source:
-                    audio = recognizer.listen(source, timeout=8, phrase_time_limit=15)
-                text = recognizer.recognize_google(audio, language="fr-FR")
-                if on_result:
-                    on_result(text)
-            except Exception as exc:
-                if on_error:
-                    on_error(exc)
-            finally:
-                self.voice_on = False
-
-        threading.Thread(target=listen, daemon=True).start()
-
-    # ------------------------------------------------------------------
-    # Dictée Windows
+    # Dictée
     # ------------------------------------------------------------------
     @staticmethod
     def trigger_windows_dictation(on_error=None) -> None:
         """Lance la dictée intégrée de Windows (Win+H).
+
+        C'est le **seul** chemin de dictée de Carib : aucune capture audio
+        n'est réalisée par l'application, et rien ne transite par un service
+        tiers de son fait.
 
         Envoyé directement via l'API Windows plutôt qu'avec `pyautogui` :
         cette bibliothèque entraînait Pillow et une pile d'automatisation
@@ -130,5 +108,6 @@ class VoiceManager:
             user32.keybd_event(VK_H, 0, KEYEVENTF_KEYUP, 0)
             user32.keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0)
         except Exception as exc:
+            log.warning("Dictée Windows indisponible : %s", exc)
             if on_error:
                 on_error(f"Impossible de lancer la dictée Windows : {exc}")

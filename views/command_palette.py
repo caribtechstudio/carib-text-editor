@@ -1,7 +1,7 @@
 """
 views/command_palette.py — Palette de commandes (Ctrl+Maj+P).
 
-Une seule liste filtrable qui expose toutes les actions de Glyph. C'est le
+Une seule liste filtrable qui expose toutes les actions de Carib. C'est le
 meilleur rapport valeur/effort en matière de découvrabilité : l'utilisateur
 n'a plus à mémoriser huit boutons ni à fouiller les menus, et les
 fonctionnalités rarement visibles (modes, options IA, remplacement)

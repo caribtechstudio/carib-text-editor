@@ -1,7 +1,7 @@
 """
 models/llm — Couche d'abstraction des moteurs de langage.
 
-Glyph parle a ChatGPT, Claude, Gemini et Ollama a travers **un seul** client
+Carib parle a ChatGPT, Claude, Gemini et Ollama a travers **un seul** client
 HTTP. Les quatre exposent aujourd'hui un endpoint compatible avec le format
 `/chat/completions` d'OpenAI : il suffit donc de changer l'URL de base et
 l'en-tete d'authentification, sans embarquer quatre SDK (ce qui alourdirait

@@ -1,5 +1,5 @@
 """
-ai_prompts.py -- Prompts systeme pour les 3 modes IA de Glyph.
+ai_prompts.py -- Prompts systeme pour les 3 modes IA de Carib.
 =================================================================
 Chaque prompt est calibre pour des LLM compacts (1-3 B parametres).
 Les instructions sont volontairement repetitives et explicites

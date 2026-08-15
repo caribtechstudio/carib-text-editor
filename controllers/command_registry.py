@@ -5,7 +5,7 @@ Séparé d'`AppController` : c'est une **table de données**, pas de la logique
 d'orchestration. La garder à part évite qu'ajouter une commande ne fasse
 grossir le contrôleur principal, et rend le catalogue lisible d'un coup d'œil.
 
-Toute action de Glyph doit figurer ici : la palette (Ctrl+Maj+P) est le point
+Toute action de Carib doit figurer ici : la palette (Ctrl+Maj+P) est le point
 d'entrée universel, et une fonctionnalité absente du catalogue est une
 fonctionnalité que l'utilisateur ne découvrira jamais.
 """
@@ -120,7 +120,7 @@ def build_commands(app) -> list[Command]:
             app.toggle_autocomplete, "Outils", "", "text"),
         cmd("tool.autosave", "Activer / désactiver la sauvegarde auto",
             app.toggle_auto_save, "Outils", "", "disk"),
-        cmd("tool.resident", "Garder Glyph actif en arrière-plan",
+        cmd("tool.resident", "Garder Carib actif en arrière-plan",
             app.toggle_stay_resident, "Outils", "", "bolt"),
         cmd("tool.options", "Options", app._show_options, "Outils", "", "settings"),
         cmd("tool.recovery", "Récupérer un document non enregistré",

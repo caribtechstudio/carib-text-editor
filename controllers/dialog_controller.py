@@ -63,8 +63,7 @@ class DialogController:
         voice = self._app.voice_ctrl
         show_voice_menu(self._page, self._c, {
             "read_text": voice.read_text,
-            "voice_typing": voice.voice_typing,
-            "voice_ms": voice.voice_ms,
+            "dictation": voice.dictation,
         })
 
     def show_help(self):
@@ -83,9 +82,47 @@ class DialogController:
             "toggle_autocomplete": app.toggle_autocomplete,
             "is_autocomplete": lambda: self.state.ac_enabled,
             "show_model_manager": app._show_ai_setup,
+            "show_privacy": self.show_privacy_center,
+            "check_updates": app.update_ctrl.check_now,
             "show_help": self.show_help,
             "show_info": lambda: show_info(self._page, self._c),
             "show_credits": lambda: show_credits(self._page, self._c),
+        })
+
+    # ==================================================================
+    # Confidentialité
+    # ==================================================================
+    def show_privacy_center(self):
+        """Centre de confidentialité : ce qui sort, ce qui reste, effacement."""
+        from views.dialogs.info_dialog import show_privacy
+        from views.dialogs.privacy_dialog import show_privacy_center
+
+        app = self._app
+        llm = app.llm
+
+        def revoke_consent():
+            llm.cloud_consent = False
+            llm.save()
+            self._snack("Consentement retiré. Carib redemandera votre accord "
+                        "avant tout envoi.")
+
+        def erased(removed: int, errors: list):
+            if errors:
+                self._snack(f"Effacement partiel : {errors[0]}",
+                            self._c(T.L_ERROR, T.D_ERROR))
+            else:
+                self._snack(f"{removed} élément(s) effacé(s).")
+
+        show_privacy_center(self._page, self._c, {
+            "privacy_mode": lambda: llm.privacy_mode,
+            "toggle_privacy_mode": app._toggle_privacy_mode,
+            "cloud_consent": lambda: llm.cloud_consent,
+            "revoke_consent": revoke_consent,
+            "updates_enabled": lambda: app.update_ctrl.enabled,
+            "toggle_updates": lambda: app.update_ctrl.set_enabled(
+                not app.update_ctrl.enabled),
+            "show_policy": lambda: show_privacy(self._page, self._c),
+            "erased": erased,
         })
 
     # ==================================================================
@@ -150,7 +187,7 @@ class DialogController:
             title=ft.Text("Récupération après interruption", size=16,
                           font_family=UI_FONT_STRONG, weight=ft.FontWeight.W_700),
             content=ft.Container(width=460, content=ft.Text(
-                f"Glyph s'est arrêté sans enregistrer{' — ' + age if age else ''}.\n"
+                f"Carib s'est arrêté sans enregistrer{' — ' + age if age else ''}.\n"
                 f"Les documents suivants ont été retrouvés :\n\n{listing}\n\n"
                 "Ils seront rouverts dans de nouveaux onglets ; à vous de les "
                 "enregistrer où vous le souhaitez.",

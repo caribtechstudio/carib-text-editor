@@ -2,7 +2,7 @@
 views/status_bar.py — Barre de statut en bas de l'éditeur.
 
 Elle porte désormais deux informations que tous les bons éditeurs affichent
-et que Glyph omettait — la position du curseur et l'encodage du fichier —
+et que Carib omettait — la position du curseur et l'encodage du fichier —
 ainsi qu'un badge IA qui indique en permanence **où part le texte** et **ce
 que ça coûte**. C'est cette transparence permanente qui rend une IA
 acceptable dans un outil où l'on écrit des choses privées.
@@ -61,7 +61,7 @@ def build_status_bar(c, st_mode, st_msg, st_chars, st_words, st_zoom=None,
 
 
 def build_ai_badge(c, label: str, is_local: bool, warning: bool, on_click):
-    """Badge IA cliquable : « ChatGPT · 0,03 € » ou « Ollama · local »."""
+    """Badge IA cliquable : « ChatGPT · 0,03 $ » ou « Ollama · local »."""
     if warning:
         color = c(T.L_WARNING, T.D_WARNING)
     elif is_local:

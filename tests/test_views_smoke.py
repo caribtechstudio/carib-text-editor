@@ -175,7 +175,7 @@ def test_barre_de_statut_et_badge_ia(c, _):
     from views.status_bar import build_ai_badge, build_status_bar
     texts = [ft.Text(x) for x in ("mode", "msg", "car", "mots", "zoom", "pos", "enc")]
     bar = build_status_bar(c, *texts[:5], st_pos=texts[5], st_encoding=texts[6],
-                           ai_badge=build_ai_badge(c, "ChatGPT · 0,03 €",
+                           ai_badge=build_ai_badge(c, "ChatGPT · 0,03 $",
                                                    False, False, noop))
     assert isinstance(bar, ft.Container)
 

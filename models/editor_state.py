@@ -124,7 +124,7 @@ class EditorState:
         #: vouloir garder le cloud par defaut mais proteger un texte precis.
         self.doc_private: dict[int, bool] = {}
 
-        #: Garder Glyph actif en arriere-plan a la fermeture. Les lancements
+        #: Garder Carib actif en arriere-plan a la fermeture. Les lancements
         #: suivants passent par l'IPC et sont quasi instantanes.
         self.stay_resident: bool = False
 

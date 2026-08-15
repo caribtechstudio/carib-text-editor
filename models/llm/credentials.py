@@ -18,14 +18,14 @@ import json
 import os
 import sys
 
-_DATA_DIR = os.path.join(os.path.expanduser("~"), ".glyph")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".carib")
 _KEYS_FILE = os.path.join(_DATA_DIR, "credentials.dat")
 
 _IS_WINDOWS = sys.platform == "win32"
 
 #: Entropie supplementaire : un attaquant doit connaitre cette valeur en plus
 #: d'avoir compromis le compte Windows pour dechiffrer le fichier.
-_ENTROPY = b"Glyph.credentials.v1"
+_ENTROPY = b"Carib.credentials.v1"
 
 
 # ---------------------------------------------------------------------------

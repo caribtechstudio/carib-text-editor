@@ -11,7 +11,7 @@ panneau s'ouvre à droite, je lis une liste » :
     document, suppressions barrées en rouge et ajouts en vert. Tab accepte,
     Échap refuse. C'est ce que font Cursor et Notion, et c'est ce qui fait
     la différence entre « il y a de l'IA » et « on écrit avec ».
-  * **Palette de commandes** (Ctrl+Maj+P) — toutes les actions de Glyph
+  * **Palette de commandes** (Ctrl+Maj+P) — toutes les actions de Carib
     dans une liste filtrable.
 """
 

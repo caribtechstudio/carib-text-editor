@@ -212,10 +212,10 @@ class KeyboardController:
                 self._show_help()
         elif e.key == "F3":
             self._voice.read_text()
-        elif e.key == "F4":
-            self._voice.voice_typing()
-        elif e.key == "F5":
-            self._voice.voice_ms()
+        elif e.key in ("F4", "F5"):
+            # F5 reste accepté : c'était le raccourci de la dictée Windows
+            # avant que celle-ci ne devienne le seul mode de dictée.
+            self._voice.dictation()
         elif e.key == "F6":
             self._check_spelling()
         elif e.key == "F7":

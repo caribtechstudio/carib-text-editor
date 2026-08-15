@@ -1,9 +1,9 @@
 """
-tools/thicken_icons.py — Épaissit les icônes SVG de Glyph.
+tools/thicken_icons.py — Épaissit les icônes SVG de Carib.
 
 Pourquoi ce script plutôt qu'un réglage
 ---------------------------------------
-Les icônes de Glyph ne sont pas des Material Symbols : ce sont des tracés
+Les icônes de Carib ne sont pas des Material Symbols : ce sont des tracés
 **pleins** (« Uicons »), en `viewBox="0 0 24 24"`, sans notion de graisse.
 Contrairement à la fonte variable de Google, on ne peut pas leur demander un
 `wght` de 400 — il n'y a aucun axe à faire varier.
@@ -58,7 +58,7 @@ DEFAULT_WIDTH = 0.6
 STROKE_COLOR = "#000000"
 
 #: Marqueur d'idempotence : un fichier déjà traité le porte.
-MARKER = "data-glyph-weight"
+MARKER = "data-carib-weight"
 
 _ICON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                          "ressource", "icon")

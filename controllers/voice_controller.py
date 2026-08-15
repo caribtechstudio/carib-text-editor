@@ -2,7 +2,7 @@
 controllers/voice_controller.py — Orchestration des fonctions vocales.
 """
 
-from models.voice_manager import sr_available, tts_available
+from models.voice_manager import tts_available
 from core.theme import T
 
 
@@ -44,39 +44,12 @@ class VoiceController:
                                     self._c(T.L_ERROR, T.D_ERROR))),
         )
 
-    def voice_typing(self, e=None):
-        if not sr_available():
-            self._snack("speech_recognition n'est pas installé.",
-                        self._c(T.L_WARNING, T.D_WARNING))
-            return
-        if self._voice.voice_on:
-            self._snack("Dictée déjà en cours.")
-            return
+    def dictation(self, e=None):
+        """Dictée Windows (Win+H).
 
-        self._snack("Parlez maintenant…")
-        page, editor, tab, rebuild = self._page, self.editor, self._tab, self._rebuild
-        get_cursor = self._get_cursor
-
-        def on_result(text):
-            d = tab.cur_doc()
-            if not d or not text:
-                return
-
-            def _apply():
-                # Insertion au curseur, comme toute autre saisie.
-                pos = get_cursor()
-                pos = max(0, min(pos, len(d.content)))
-                d.apply_change(d.content[:pos] + text + d.content[pos:])
-                d.modified = True
-                editor.value = d.content
-                rebuild()
-
-            page.run_thread(_apply)
-
-        def on_error(exc):
-            page.run_thread(lambda: self._snack(f"Dictée : {exc}"))
-
-        self._voice.listen_speech(on_result=on_result, on_error=on_error)
-
-    def voice_ms(self, e=None):
-        self._voice.trigger_windows_dictation(on_error=self._snack)
+        Seul chemin de dictée depuis la 0.14.0 : la reconnaissance vocale
+        Google, qui envoyait le microphone à un tiers sans consentement, a
+        été retirée (voir models/voice_manager).
+        """
+        self._voice.trigger_windows_dictation(
+            on_error=lambda msg: self._snack(msg, self._c(T.L_WARNING, T.D_WARNING)))

@@ -1,0 +1,8 @@
+# Carib — dépendances de développement
+#
+# Installation :  pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest>=8.0          # suite de tests : python -m pytest tests/
+pyinstaller>=6.0     # construction du binaire : build.bat

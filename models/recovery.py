@@ -19,7 +19,7 @@ import time
 
 from models.scheduler import scheduler
 
-_DATA_DIR = os.path.join(os.path.expanduser("~"), ".glyph")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".carib")
 _RECOVERY_FILE = os.path.join(_DATA_DIR, "recovery.json")
 
 #: Fréquence d'écriture du journal tant qu'il reste des modifications.

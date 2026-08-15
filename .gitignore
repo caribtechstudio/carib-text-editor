@@ -32,6 +32,14 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# ...sauf celui de Carib : sans lui, un clone frais ne peut pas construire
+# l'application, alors que build.bat en depend directement.
+!Carib.spec
+
+# Icones sources Flaticon : la licence gratuite autorise leur usage dans
+# l'application, pas leur redistribution en tant que fichiers autonomes.
+# Elles restent sur le disque pour tools/thicken_icons.py, hors du depot.
+ressource/icon/_original/
 
 # Installer logs
 pip-log.txt

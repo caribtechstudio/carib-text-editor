@@ -6,13 +6,13 @@ Sécurité
 La version précédente écoutait sur 127.0.0.1:47823 et ouvrait **n'importe
 quel chemin** envoyé par **n'importe quel processus local**, sans
 authentification. Un programme sans privilège particulier pouvait donc faire
-ouvrir des fichiers arbitraires dans Glyph — y compris des chemins UNC
+ouvrir des fichiers arbitraires dans Carib — y compris des chemins UNC
 (`\\\\serveur\\partage\\...`) dont la simple lecture déclenche une
 authentification SMB sortante.
 
 Trois protections sont désormais en place :
 
-  1. **Jeton partagé** — un secret aléatoire est écrit dans `~/.glyph/ipc.token`
+  1. **Jeton partagé** — un secret aléatoire est écrit dans `~/.carib/ipc.token`
      à la première exécution. Seuls les processus capables de lire ce fichier
      (donc s'exécutant sous le même compte) peuvent parler au serveur.
   2. **Validation des chemins** — le message doit désigner un fichier régulier
@@ -27,7 +27,7 @@ import threading
 
 _IPC_HOST = "127.0.0.1"
 _IPC_PORT = 47823
-_DATA_DIR = os.path.join(os.path.expanduser("~"), ".glyph")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".carib")
 _TOKEN_FILE = os.path.join(_DATA_DIR, "ipc.token")
 
 _MAX_MESSAGE = 4096
@@ -80,7 +80,7 @@ def send_to_existing_instance(paths) -> bool:
     """Transmet un ou plusieurs chemins à une instance déjà ouverte.
 
     Le multi-chemins compte : Windows passe toute une sélection en argv
-    quand on l'ouvre avec Glyph ou qu'on la dépose sur son icône.
+    quand on l'ouvre avec Carib ou qu'on la dépose sur son icône.
 
     Retourne True si une instance a bien reçu le message.
     """
@@ -175,7 +175,7 @@ def stop_ipc_server():
     """Ferme l'écoute — à appeler à la fermeture de l'application.
 
     Le thread est déjà `daemon`, mais laisser le port ouvert pendant l'arrêt
-    fait qu'un lancement immédiat de Glyph croit parler à l'instance
+    fait qu'un lancement immédiat de Carib croit parler à l'instance
     précédente : il lui envoie ses chemins, et disparaît sans rien ouvrir.
     """
     _stopping.set()

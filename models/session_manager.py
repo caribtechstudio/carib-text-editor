@@ -19,7 +19,7 @@ from models.document import Document
 from models.scheduler import scheduler
 from models.file_manager import (DEFAULT_ENCODING, DEFAULT_NEWLINE, load_file)
 
-_DATA_DIR = os.path.join(os.path.expanduser("~"), ".glyph")
+_DATA_DIR = os.path.join(os.path.expanduser("~"), ".carib")
 _SESSION_FILE = os.path.join(_DATA_DIR, "session.json")
 
 #: Delai de regroupement des ecritures : un zoom repete ne produit qu'un seul
@@ -164,7 +164,7 @@ def flush_pending():
 # ---------------------------------------------------------------------------
 
 def load_session() -> dict | None:
-    """Charge ~/.glyph/session.json, ou None si absent ou corrompu."""
+    """Charge ~/.carib/session.json, ou None si absent ou corrompu."""
     if not os.path.isfile(_SESSION_FILE):
         return None
     try:

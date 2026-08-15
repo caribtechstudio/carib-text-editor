@@ -50,7 +50,7 @@ SAMPLES = {
     "a.py": '# commentaire\ndef salut(nom="monde"):\n    return len(nom) + 42\n',
     "a.json": '{"nom": "Arnaud", "age": 30, "actif": true, "note": null}',
     "a.md": "# Titre\n\nDu **gras**, de l'*italique*, du `code`.\n\n- item\n> citation\n",
-    "a.yaml": "# config\nnom: Glyph\nversion: 0.12\nactif: true\n[section]\n",
+    "a.yaml": "# config\nnom: Carib\nversion: 0.12\nactif: true\n[section]\n",
     "a.js": "// note\nfunction f(x) { return `v${x}`; }\n",
     "a.sql": "-- requête\nSELECT nom FROM users WHERE age > 30;",
 }

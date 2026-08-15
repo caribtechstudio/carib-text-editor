@@ -53,8 +53,7 @@ SHORTCUTS = (
     ("Outils", [
         ("Aide", "F1"),
         ("Lire le texte à voix haute", "F3"),
-        ("Dictée Google", "F4"),
-        ("Dictée Windows", "F5"),
+        ("Dictée vocale (Windows)", "F4"),
         ("Orthographe (local)", "F6"),
     ]),
 )
@@ -101,7 +100,7 @@ def show_help(page, c):
         content=ft.Text(
             "Astuce : tapez :code puis une espace pour insérer un emoji.\n"
             "Exemples : :coeur  :feu  :ok  :sourire  :drapeau_fr\n\n"
-            "Tout ce que fait Glyph est accessible depuis Ctrl+Maj+P.",
+            "Tout ce que fait Carib est accessible depuis Ctrl+Maj+P.",
             size=13, color=c(T.L_TERTIARY, T.D_TERTIARY)),
     ))
 

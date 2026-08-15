@@ -1,0 +1,186 @@
+CONTRAT DE LICENCE UTILISATEUR FINAL — CARIB
+=============================================
+
+Version 1.0 — applicable a partir de Carib 0.14.0
+Editeur : Arnaud (ci-apres « l'Editeur »)
+Contact : contact@caribtechstudio.com
+
+IMPORTANT — LISEZ ATTENTIVEMENT.
+
+Ce contrat est conclu entre vous (« l'Utilisateur ») et l'Editeur. En
+installant, en copiant ou en utilisant Carib (« le Logiciel »), vous
+acceptez d'etre lie par l'ensemble des clauses ci-dessous. Si vous ne les
+acceptez pas, n'installez pas le Logiciel et supprimez-en toute copie.
+
+
+1. OBJET
+--------
+
+Carib est un editeur de texte pour Windows. Il fonctionne integralement sur
+votre ordinateur. Il peut, si vous le decidez et apres votre accord
+explicite, transmettre du texte a des services d'intelligence artificielle
+exploites par des tiers.
+
+
+2. LICENCE ACCORDEE
+-------------------
+
+L'Editeur vous concede un droit d'utilisation personnel, mondial, gratuit,
+non exclusif et non transferable du Logiciel, pour un nombre illimite
+d'ordinateurs dont vous etes l'utilisateur.
+
+Cette licence couvre l'usage prive comme l'usage professionnel interne. Elle
+ne vous transfere aucun droit de propriete sur le Logiciel.
+
+
+3. RESTRICTIONS
+---------------
+
+Sauf autorisation ecrite prealable de l'Editeur, vous ne pouvez pas :
+
+  a) vendre, louer, preter ou sous-licencier le Logiciel ;
+  b) le redistribuer, notamment sur une plateforme de telechargement, un
+     agregateur ou un support physique ;
+  c) le presenter comme votre propre produit, ni en retirer ou modifier les
+     mentions de paternite, de licence ou de droit d'auteur ;
+  d) le decompiler ou en faire de l'ingenierie inverse, sauf dans la stricte
+     mesure autorisee par l'article L.122-6-1 du Code de la propriete
+     intellectuelle et par la directive 2009/24/CE, qui priment sur la
+     presente clause ;
+  e) l'integrer dans une offre commerciale, un service payant ou un produit
+     derive destine a la vente.
+
+Le code source de Carib est publie separement sous licence PolyForm
+Noncommercial 1.0.0 (fichier LICENSE.txt). Cette publication n'etend pas
+les droits accordes par le present contrat sur le binaire.
+
+
+4. DONNEES PERSONNELLES ET CONFIDENTIALITE
+------------------------------------------
+
+L'Editeur n'exploite aucun serveur, ne collecte aucune donnee, n'installe
+aucun mouchard et ne pratique aucune mesure d'audience. Vos documents et
+vos reglages restent sur votre ordinateur.
+
+Le Logiciel peut se connecter a internet dans trois cas, et trois seulement :
+
+  1. Recherche de mise a jour, aupres de GitHub. Aucune donnee personnelle
+     n'est transmise. Cette verification est desactivable a tout moment.
+  2. Fonctions d'intelligence artificielle, si et seulement si vous avez
+     configure un fournisseur en ligne ET donne votre accord explicite.
+     Le texte concerne est alors transmis au fournisseur que vous avez
+     choisi, sous la responsabilite de celui-ci.
+  3. Dialogue avec un serveur Ollama, qui s'execute sur votre propre
+     machine et ne fait sortir aucune donnee.
+
+Le detail figure dans le fichier CONFIDENTIALITE.md, accessible depuis
+Options > Confidentialite. Il fait partie integrante du present contrat.
+
+
+5. SERVICES DE TIERS
+--------------------
+
+Lorsque vous activez une fonction d'intelligence artificielle en ligne, le
+traitement est realise par le fournisseur que vous avez choisi (OpenAI,
+Anthropic, Google ou autre), selon SES conditions et SA politique de
+confidentialite, que vous devez consulter et accepter separement.
+
+L'Editeur n'est pas partie a cette relation. Il n'exerce aucun controle sur
+ces services, ne garantit ni leur disponibilite, ni la qualite de leurs
+resultats, ni la duree de conservation des donnees que vous leur envoyez,
+et decline toute responsabilite a leur egard. Les couts eventuels de ces
+services sont a votre charge exclusive ; les montants affiches par Carib
+sont indicatifs et ne constituent pas une facture.
+
+
+6. ABSENCE DE GARANTIE
+----------------------
+
+LE LOGICIEL EST FOURNI « EN L'ETAT », SANS AUCUNE GARANTIE EXPRESSE OU
+IMPLICITE, NOTAMMENT SANS GARANTIE DE QUALITE MARCHANDE, D'ADEQUATION A UN
+USAGE PARTICULIER, D'ABSENCE D'ERREUR, DE CONTINUITE DE SERVICE OU
+D'ABSENCE DE CONTREFACON.
+
+L'Editeur ne garantit pas que le Logiciel fonctionnera sans interruption ni
+defaut, ni qu'il sera compatible avec une configuration donnee.
+
+ATTENTION — SAUVEGARDES. Carib manipule vos fichiers. Malgre le soin
+apporte a son developpement (ecriture atomique, journal de recuperation),
+aucun logiciel n'est exempt de defaut. Il vous appartient de conserver des
+sauvegardes independantes et a jour de tout document important.
+
+
+7. LIMITATION DE RESPONSABILITE
+-------------------------------
+
+Dans les limites permises par le droit applicable, l'Editeur ne pourra en
+aucun cas etre tenu responsable des dommages indirects, accessoires ou
+consecutifs, notamment perte de donnees, perte de fichiers, perte
+d'exploitation, perte de chiffre d'affaires, perte de temps ou atteinte a
+l'image, resultant de l'utilisation ou de l'impossibilite d'utiliser le
+Logiciel.
+
+Le Logiciel etant fourni gratuitement, la responsabilite totale de
+l'Editeur, tous chefs de prejudice confondus, est limitee a zero euro.
+
+Les presentes limitations ne s'appliquent pas en cas de faute lourde ou
+dolosive, ni en cas de dommage corporel, ni dans les cas ou la loi les
+prohibe. Si vous etes consommateur au sens du Code de la consommation, vos
+droits legaux imperatifs, notamment la garantie legale de conformite, ne
+sont pas affectes par ce contrat.
+
+
+8. MISES A JOUR
+---------------
+
+Le Logiciel peut verifier au demarrage l'existence d'une version plus
+recente et vous proposer de l'installer. Cette verification ne s'effectue
+qu'avec votre accord, ne transmet aucune donnee personnelle, et peut etre
+desactivee dans les options.
+
+Aucune mise a jour n'est jamais installee sans une action explicite de
+votre part. L'Editeur n'est tenu a aucune obligation de maintenance,
+de correction ou de fourniture de nouvelles versions.
+
+
+9. DUREE ET RESILIATION
+-----------------------
+
+Ce contrat prend effet a l'installation et reste en vigueur tant que vous
+utilisez le Logiciel. Il prend fin automatiquement si vous en violez une
+clause. A sa cessation, vous devez desinstaller le Logiciel et en detruire
+toute copie. Les articles 6, 7 et 10 survivent a la resiliation.
+
+
+10. DROIT APPLICABLE
+--------------------
+
+Le present contrat est regi par le droit francais. En cas de litige, et a
+defaut de resolution amiable, competence est attribuee aux tribunaux
+francais competents. Si vous etes consommateur, vous conservez le droit de
+saisir la juridiction de votre lieu de residence.
+
+
+11. COMPOSANTS TIERS
+--------------------
+
+Carib incorpore des composants developpes par des tiers, distribues sous
+leurs propres licences, dont certaines vous accordent des droits plus
+etendus que le present contrat. La liste complete, les textes de licence
+et les mentions obligatoires figurent dans le fichier TIERS.txt, installe
+aux cotes du Logiciel et accessible depuis Options > Credits.
+
+
+12. DISPOSITIONS DIVERSES
+-------------------------
+
+Si une clause du present contrat est jugee invalide ou inapplicable, les
+autres clauses conservent leur plein effet. Le fait pour l'Editeur de ne
+pas se prevaloir d'une clause ne vaut pas renonciation a celle-ci.
+
+Ce contrat constitue l'integralite de l'accord entre les parties concernant
+le Logiciel et remplace tout accord anterieur.
+
+
+--
+Pour toute question relative a ce contrat, ecrivez a contact@caribtechstudio.com.

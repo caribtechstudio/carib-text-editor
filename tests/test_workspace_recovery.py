@@ -111,7 +111,7 @@ class FakeDoc:
 
 @pytest.fixture(autouse=True)
 def journal_isole(tmp_path, monkeypatch):
-    """Isole le journal du vrai ~/.glyph de la machine."""
+    """Isole le journal du vrai ~/.carib de la machine."""
     monkeypatch.setattr(recovery, "_DATA_DIR", str(tmp_path))
     monkeypatch.setattr(recovery, "_RECOVERY_FILE", str(tmp_path / "recovery.json"))
     yield

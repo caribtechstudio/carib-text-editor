@@ -1,10 +1,10 @@
 [tool.flet]
-app.name = "Glyph"
+app.name = "Carib"
 app.description = "Éditeur de texte moderne — Notion / Untitled UI style"
-app.product_name = "Glyph"
+app.product_name = "Carib"
 app.organization = "Arnaud"
-app.version = "0.12"
-app.bundle_id = "com.arnaud.glyph"
+app.version = "0.14.0"
+app.bundle_id = "com.arnaud.carib"
 
 [tool.flet.app.windows]
 # Icône de l'application (fichier .ico dans ressource/icon/)

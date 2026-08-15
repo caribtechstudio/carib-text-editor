@@ -6,8 +6,8 @@ suppose une boucle de messages Win32 que Flutter n'utilise pas, et une fenêtre
 peut exister avant d'avoir affiché quoi que ce soit.
 
 L'application se chronomètre donc elle-même. Le lanceur (`tools/measure_startup.py`)
-passe l'horodatage de départ dans `GLYPH_T0` et un fichier de sortie dans
-`GLYPH_STARTUP_LOG` ; Glyph y inscrit le délai écoulé au moment où la première
+passe l'horodatage de départ dans `CARIB_T0` et un fichier de sortie dans
+`CARIB_STARTUP_LOG` ; Carib y inscrit le délai écoulé au moment où la première
 image est réellement peinte. Le chiffre inclut donc **tout** : bootloader
 PyInstaller, démarrage de l'interpréteur, imports, moteur Flutter.
 
@@ -20,9 +20,9 @@ import time
 
 #: Horodatage de référence. Le lanceur le fournit pour englober le coût du
 #: bootloader ; à défaut, on part du chargement de ce module.
-T0 = float(os.environ.get("GLYPH_T0") or 0) or time.time()
+T0 = float(os.environ.get("CARIB_T0") or 0) or time.time()
 
-_LOG_PATH = os.environ.get("GLYPH_STARTUP_LOG") or ""
+_LOG_PATH = os.environ.get("CARIB_STARTUP_LOG") or ""
 _seen: set[str] = set()
 
 

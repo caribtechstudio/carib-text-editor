@@ -1,13 +1,13 @@
 """
-tools/measure_startup.py — Chronomètre le démarrage de Glyph.
+tools/measure_startup.py — Chronomètre le démarrage de Carib.
 
 Lance l'application plusieurs fois et relève le délai entre le lancement du
 processus et l'affichage de la première image, tel que mesuré par
 l'application elle-même (voir models/startup_probe.py).
 
     python tools/measure_startup.py                    # source
-    python tools/measure_startup.py dist/Glyph/Glyph.exe
-    python tools/measure_startup.py dist/Glyph/Glyph.exe --runs 5
+    python tools/measure_startup.py dist/Carib/Carib.exe
+    python tools/measure_startup.py dist/Carib/Carib.exe --runs 5
 
 La première exécution après un build est toujours plus lente (cache disque
 froid, analyse antivirus) : le minimum est plus représentatif que la moyenne.
@@ -34,8 +34,8 @@ def run_once(target: list[str], log_path: Path) -> list[tuple[str, float]] | Non
         log_path.unlink()
 
     env = dict(os.environ)
-    env["GLYPH_T0"] = repr(time.time())
-    env["GLYPH_STARTUP_LOG"] = str(log_path)
+    env["CARIB_T0"] = repr(time.time())
+    env["CARIB_STARTUP_LOG"] = str(log_path)
 
     process = subprocess.Popen(target, cwd=str(ROOT), env=env,
                                stdout=subprocess.DEVNULL,
@@ -67,7 +67,7 @@ def run_once(target: list[str], log_path: Path) -> list[tuple[str, float]] | Non
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Mesure le démarrage de Glyph.")
+    parser = argparse.ArgumentParser(description="Mesure le démarrage de Carib.")
     parser.add_argument("exe", nargs="?", default="",
                         help="Exécutable à mesurer (défaut : lancer les sources).")
     parser.add_argument("--runs", type=int, default=3)
@@ -77,7 +77,7 @@ def main():
         target = [str(Path(args.exe).resolve())]
         label = args.exe
     else:
-        target = [sys.executable, str(ROOT / "glyph.py")]
+        target = [sys.executable, str(ROOT / "carib.py")]
         label = "sources Python"
 
     print(f"Mesure de « {label} » — {args.runs} lancement(s)\n")

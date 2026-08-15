@@ -1,5 +1,5 @@
 """
-theme.py — Design tokens (couleurs) pour Glyph.
+theme.py — Design tokens (couleurs) pour Carib.
 """
 
 

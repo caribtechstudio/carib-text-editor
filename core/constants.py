@@ -1,5 +1,5 @@
 """
-constants.py — Constantes globales de l'application Glyph.
+constants.py — Constantes globales de l'application Carib.
 """
 
 import os
@@ -7,8 +7,35 @@ import sys
 
 import flet as ft
 
-APP_NAME = "Glyph"
-APP_VERSION = "0.13.2"
+#: Nom court, celui de la marque. C'est lui qui apparaît partout où la place
+#: manque : logo de la barre latérale, notifications, zone de notification.
+APP_NAME = "Carib"
+
+#: Nom complet du produit — titre de fenêtre, boîte d'informations,
+#: installeur, documents légaux. « Text Editor » est purement descriptif et
+#: ne porte aucun droit : seul `APP_NAME` constitue le signe distinctif.
+APP_FULL_NAME = "Carib Text Editor"
+
+#: **Source de vérité unique du numéro de version.**
+#:
+#: `tools/sync_version.py` recopie cette valeur dans `pyproject.toml` et
+#: `installer/setup.iss` ; `build.bat` l'appelle avant chaque compilation.
+#: Ne modifiez la version qu'ici.
+APP_VERSION = "0.14.0"
+
+# ---------------------------------------------------------------------------
+# Distribution
+# ---------------------------------------------------------------------------
+#: Dépôt GitHub interrogé pour les mises à jour, au format « owner/repo ».
+#: Vide = recherche de mise à jour désactivée (voir models/updater.py).
+GITHUB_REPO = "caribtechstudio/carib-text-editor"
+
+APP_URL = f"https://github.com/{GITHUB_REPO}"
+RELEASES_URL = f"{APP_URL}/releases"
+ISSUES_URL = f"{APP_URL}/issues"
+
+#: Adresse de contact affichée dans l'application et les documents légaux.
+CONTACT_EMAIL = "contact@caribtechstudio.com"
 
 MODE_TEXT = "text"
 MODE_CALC = "calc"
@@ -55,10 +82,26 @@ ICON_BTN_SIZE = ICON_MD + ICON_BTN_PADDING * 2   # 40
 TOOLBAR_HEIGHT = ICON_BTN_SIZE + 8 + 20   # 68
 
 
+def app_root() -> str:
+    """Racine des fichiers livrés avec l'application.
+
+    Empaquetée, PyInstaller place les données dans `_internal/`, dont
+    `sys._MEIPASS` donne le chemin. En développement, c'est la racine du
+    dépôt — soit le **parent** du dossier `core/` qui contient ce fichier.
+    Sans ce `dirname` supplémentaire, tous les chemins de ressources
+    désignaient `core/ressource/`, qui n'existe pas : le dictionnaire
+    d'orthographe était introuvable dès qu'on lançait Carib depuis les
+    sources.
+    """
+    frozen = getattr(sys, "_MEIPASS", None)
+    if frozen:
+        return frozen
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def resource_path(rel: str) -> str:
     """Résout un chemin relatif vers les ressources (compatible PyInstaller)."""
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, rel)
+    return os.path.join(app_root(), rel)
 
 
 def svg_icon(name: str, size: int = ICON_MD, color=None) -> ft.Image:

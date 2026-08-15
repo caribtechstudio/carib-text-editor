@@ -91,7 +91,7 @@ def patch_file(path: str) -> int:
 
 
 def main(argv: list) -> int:
-    dist = argv[1] if len(argv) > 1 else os.path.join("dist", "Glyph")
+    dist = argv[1] if len(argv) > 1 else os.path.join("dist", "Carib")
     target = os.path.join(dist, _REL_PATH)
 
     if not os.path.isfile(target):

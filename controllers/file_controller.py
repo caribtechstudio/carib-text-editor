@@ -3,7 +3,7 @@ controllers/file_controller.py — Ouvrir, enregistrer, renommer, imprimer.
 
 L'enregistrement respecte désormais l'encodage et les fins de ligne
 d'origine du fichier, et vérifie qu'il n'a pas été modifié en dehors de
-Glyph avant de l'écraser.
+Carib avant de l'écraser.
 """
 
 import os
@@ -15,7 +15,7 @@ from models.file_manager import (BinaryFileError, FileTooLargeError, load_file,
 from core.theme import T
 from views.dialogs.rename_dialog import show_rename_dialog
 
-#: Extensions proposées à l'ouverture. Glyph n'était limité qu'au .txt, ce qui
+#: Extensions proposées à l'ouverture. Carib n'était limité qu'au .txt, ce qui
 #: le rendait inutilisable pour des notes Markdown, des journaux ou du JSON.
 TEXT_EXTENSIONS = [
     "txt", "md", "markdown", "log", "csv", "tsv", "json", "yaml", "yml",

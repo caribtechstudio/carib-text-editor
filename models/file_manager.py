@@ -192,7 +192,7 @@ def write_file(path: str, content: str,
 
     # Le fichier temporaire doit être sur le MÊME volume que la cible,
     # sinon os.replace n'est plus atomique (copie inter-volumes).
-    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".glyph-", suffix=".tmp")
+    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".carib-", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding=encoding, newline=newline) as fh:
             fh.write(content)
@@ -212,7 +212,7 @@ def write_file(path: str, content: str,
 
 
 def file_changed_on_disk(path: str, known_mtime: float, known_size: int) -> bool:
-    """Indique si le fichier a été modifié en dehors de Glyph depuis sa lecture."""
+    """Indique si le fichier a été modifié en dehors de Carib depuis sa lecture."""
     if not path or not known_mtime:
         return False
     try:

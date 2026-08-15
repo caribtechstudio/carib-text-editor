@@ -1,5 +1,5 @@
 """
-my_emoji.py — Dictionnaire d'émojis pour Glyph v0.9
+my_emoji.py — Dictionnaire d'émojis pour Carib v0.9
 ==============================================================
 Fournit :
   - EmojiDictionary   : 400+ émojis en 10 catégories, avec alias My_emoji

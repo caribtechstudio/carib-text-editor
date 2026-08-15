@@ -41,9 +41,9 @@ def _has_open_dialog(page) -> bool:
 
 def install_dialog_guard(page) -> None:
     """Rend `page.show_dialog` idempotent tant qu'un dialogue est ouvert."""
-    if getattr(page, "_glyph_dialog_guard", False):
+    if getattr(page, "_carib_dialog_guard", False):
         return
-    page._glyph_dialog_guard = True
+    page._carib_dialog_guard = True
 
     show_dialog = page.show_dialog
 

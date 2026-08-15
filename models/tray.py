@@ -7,7 +7,7 @@ icône et deux entrées de menu, l'appel direct à `Shell_NotifyIcon` via
 `ctypes` est plus léger et n'ajoute aucune dépendance.
 
 Ce module rend possible l'**instance résidente** : à la fermeture de la
-fenêtre, Glyph se cache au lieu de quitter. Le double-clic suivant sur un
+fenêtre, Carib se cache au lieu de quitter. Le double-clic suivant sur un
 fichier passe par l'IPC déjà en place et la fenêtre réapparaît en quelques
 dizaines de millisecondes, au lieu des sept à dix secondes d'un démarrage
 complet.
@@ -134,7 +134,7 @@ class TrayIcon:
         if self._thread is not None:
             return self._ok
 
-        self._thread = threading.Thread(target=self._run, name="glyph-tray",
+        self._thread = threading.Thread(target=self._run, name="carib-tray",
                                         daemon=True)
         self._thread.start()
         self._ready.wait(3.0)
@@ -180,7 +180,7 @@ class TrayIcon:
         self._declare_signatures(user32, kernel32)
 
         hinstance = kernel32.GetModuleHandleW(None)
-        class_name = f"GlyphTray{os.getpid()}_{next(_class_counter)}"
+        class_name = f"CaribTray{os.getpid()}_{next(_class_counter)}"
         self._class_name = class_name
         self._hinstance = hinstance
 
@@ -302,9 +302,9 @@ class TrayIcon:
     def _show_menu(self, hwnd):
         user32 = ctypes.windll.user32
         menu = user32.CreatePopupMenu()
-        user32.AppendMenuW(menu, MF_STRING, CMD_SHOW, "Ouvrir Glyph")
+        user32.AppendMenuW(menu, MF_STRING, CMD_SHOW, "Ouvrir Carib")
         user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
-        user32.AppendMenuW(menu, MF_STRING, CMD_QUIT, "Quitter Glyph")
+        user32.AppendMenuW(menu, MF_STRING, CMD_QUIT, "Quitter Carib")
 
         point = wintypes.POINT()
         user32.GetCursorPos(ctypes.byref(point))

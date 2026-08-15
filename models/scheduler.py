@@ -3,7 +3,7 @@ models/scheduler.py — Ordonnanceur unique pour les tâches différées.
 
 Le problème résolu
 ------------------
-Glyph reposait sur `threading.Timer`, à seize endroits. Chaque appel crée un
+Carib reposait sur `threading.Timer`, à seize endroits. Chaque appel crée un
 **thread du système d'exploitation**, le démarre, le fait dormir, puis le
 détruit. Or ces timers sont relancés à chaque frappe (instantané d'annulation,
 sauvegarde auto, réindexation du dictionnaire, comptage des mots, debounce du
@@ -28,7 +28,7 @@ import time
 class Scheduler:
     """Exécute des fonctions après un délai, sur un unique thread."""
 
-    def __init__(self, name: str = "glyph-scheduler"):
+    def __init__(self, name: str = "carib-scheduler"):
         self._lock = threading.Lock()
         self._wakeup = threading.Condition(self._lock)
         #: Tas de (échéance, numéro de séquence, clé).

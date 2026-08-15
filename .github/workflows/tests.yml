@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Carib est un logiciel Windows : DPAPI, la dictée intégrée et les
+    # associations de fichiers n'ont pas d'équivalent ailleurs. Tester sur
+    # Linux donnerait une assurance trompeuse.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Vérifier la cohérence des numéros de version
+        # core/constants.py fait foi. Si pyproject.toml ou setup.iss ont
+        # divergé, l'installeur repartirait avec un numéro périmé.
+        run: python tools/sync_version.py --check
+
+      - name: Vérifier la présence des documents légaux
+        # Carib.spec les embarque : leur absence casse le build bien plus
+        # loin, avec un message obscur.
+        shell: pwsh
+        run: |
+          $manquants = @('LICENSE.txt','EULA.txt','TIERS.txt','CONFIDENTIALITE.md') |
+            Where-Object { -not (Test-Path $_) }
+          if ($manquants) {
+            Write-Error "Documents légaux manquants : $($manquants -join ', ')"
+            exit 1
+          }
+          Write-Host "Les quatre documents légaux sont présents."
+
+      - name: Tests
+        run: python -m pytest tests/ -q

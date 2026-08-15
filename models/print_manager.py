@@ -104,7 +104,7 @@ def print_document(title: str, text: str, on_success=None, on_error=None) -> Non
 </html>"""
 
             # Écrire dans un fichier temporaire qui persiste
-            fd, path = tempfile.mkstemp(suffix=".html", prefix="glyph_print_")
+            fd, path = tempfile.mkstemp(suffix=".html", prefix="carib_print_")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(html_content)
 

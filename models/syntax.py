@@ -3,7 +3,7 @@ models/syntax.py — Coloration syntaxique légère, sans dépendance externe.
 
 Pourquoi pas Pygments ? Il pèse une dizaine de mégaoctets et importe des
 centaines de modules ; embarqué dans l'exécutable, il annulerait une partie
-du gain de démarrage obtenu par ailleurs. Glyph n'a besoin que d'une poignée
+du gain de démarrage obtenu par ailleurs. Carib n'a besoin que d'une poignée
 de langages, et un analyseur par expressions régulières les couvre en
 quelques centaines de lignes.
 
