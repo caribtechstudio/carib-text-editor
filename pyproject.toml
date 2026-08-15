@@ -3,7 +3,7 @@ app.name = "Carib"
 app.description = "Éditeur de texte moderne — Notion / Untitled UI style"
 app.product_name = "Carib"
 app.organization = "Arnaud"
-app.version = "0.14.2"
+app.version = "0.15.0"
 app.bundle_id = "com.arnaud.carib"
 
 [tool.flet.app.windows]

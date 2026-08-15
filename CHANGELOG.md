@@ -5,6 +5,24 @@ Carib suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [0.15.0] — 2026-08-15
+
+### Interface et expérience utilisateur
+
+- Refonte visuelle complète inspirée d'une interface plus moderne, légère
+  et aérée, sans retrait de fonctionnalité.
+- Nouvelle palette claire et sombre, typographie mieux hiérarchisée et
+  échelle cohérente pour les icônes, espacements et zones cliquables.
+- Barre latérale restructurée, onglets en capsules, accès direct à
+  l'assistant IA et barre d'outils regroupée par contexte.
+- Refonte des dialogues Options, Aide, Émojis, IA, confidentialité,
+  récupération, erreurs et confirmations système.
+- Ajout de micro-animations courtes pour les survols, la recherche, le
+  panneau IA, le zoom, la barre latérale et les transitions principales.
+- Nouvel écran de démarrage Carib avec logo, indicateur de progression et
+  respect du thème enregistré.
+- Ajout de tests de construction dédiés aux dialogues redessinés.
+
 ## [0.14.2] — 2026-08-15
 
 ### Corrections
